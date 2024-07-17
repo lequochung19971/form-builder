@@ -15,10 +15,6 @@ export type CState = {
   disabled?: boolean;
   hidden?: boolean;
   loading?: boolean;
-  invalid?: boolean;
-  isTouched?: boolean;
-  isDirty?: boolean;
-  error?: FieldError;
   index?: number;
 };
 
@@ -28,6 +24,10 @@ export type ComponentInstance = {
   componentConfig: ComponentConfig;
   parentPaths?: ParentPath[];
   __control: ComponentControl;
+  /**
+   * if ComponentType is FORM, it will have __formControl
+   */
+  __formControl?: Omit<UseFormReturn<FieldValues, any>, 'formState'>;
 };
 
 export type PartialComponentInstance = {
@@ -35,7 +35,14 @@ export type PartialComponentInstance = {
   __children?: Record<string, ComponentInstance> | Record<string, ComponentInstance>[];
   __control?: Partial<ComponentControl>;
   parentPaths?: ParentPath[];
+
+  /**
+   * if ComponentType is FORM, it will have __formControl
+   */
+  __formControl?: Omit<UseFormReturn<FieldValues, any>, 'formState'>;
 };
+
+export type FormComponentControl = Omit<UseFormReturn<FieldValues, any>, 'formState'>;
 
 export type ComponentArrayControl = CreateArrayReturn & {
   append: (value: Record<string, any>) => void;
@@ -43,16 +50,17 @@ export type ComponentArrayControl = CreateArrayReturn & {
   setInnerComponentInstances: (arrayFields: Record<string, unknown>[]) => void;
 };
 
-export type FormBuilderControl = {
+export type ComponentControl = {
+  getCurrent: () => ComponentInstance;
+  getParents: () => ComponentInstance[];
   setComponentInstance: (name: string, componentState: PartialComponentInstance) => void;
   getComponentInstances: (name: string | string[]) => ComponentInstance | ComponentInstance[];
   setComponentInstances: React.Dispatch<React.SetStateAction<Record<string, ComponentInstance>>>;
-  getForm: () => UseFormReturn<FieldValues, any, FieldValues>;
-};
 
-export type ComponentControl = FormBuilderControl & {
-  getCurrent: () => ComponentInstance;
-  getParents: () => ComponentInstance[];
+  /**
+   * if parent of a component is FORM, it will return formControl
+   */
+  getForm: () => Omit<UseFormReturn<FieldValues, any>, 'formState'> | undefined;
 } & Partial<ComponentArrayControl>;
 
 export type VisibilityMethodArgs = {
@@ -79,26 +87,50 @@ type ChangeAction = (args: ActionArgs<React.ChangeEvent<HTMLElement>>) => void;
 type BlurAction = (args: ActionArgs<React.FocusEvent<HTMLElement>>) => void;
 
 export enum ComponentType {
+  /**
+   * UI components
+   */
   INPUT = 'input',
   BUTTON = 'button',
-  OBJECT_CONTAINER = 'objectContainer',
-  ARRAY_CONTAINER = 'arrayContainer',
+  CONTAINER = 'container',
   PAGE = 'page',
   FORM = 'form',
   DIALOG = 'dialog',
+  TABS = 'tabs',
+  TAB = 'tab',
+  COLUMN = 'column',
+
+  /**
+   * Data components
+   * Components are used inside Form component and used to collected data
+   */
+  INPUT_FIELD = 'inputField',
+  OBJECT_CONTAINER = 'objectContainer',
+  ARRAY_CONTAINER = 'arrayContainer',
+  SUBMIT_BUTTON = 'submitButton',
+  DATA_TABLE = 'dataTable',
 }
 
 export type ParentPath = {
+  // Parent Id
+  id: string;
+
   name?: string;
+  type: ComponentType;
+  componentName: string;
   /**
    * if having index,it means array
    */
   index?: number;
+
+  parentPaths?: ParentPath[];
 };
 
 export type BaseComponentProps<T extends ComponentConfig = ComponentConfig> = {
   componentConfig: T;
   parentPaths: ParentPath[];
+  index: number;
+  parentId?: string;
 };
 
 export type BaseComponentConfig = {
@@ -132,17 +164,21 @@ export type VisibilityConfig = {
 
 export type ComponentConfig = {
   id: string;
+  componentName: string;
   type: ComponentType;
+
+  index?: number;
+
+  parentId?: string;
 
   /**
    * A field name, it is using to collect data
    */
-  name: string;
+  name?: string;
 
   // For Array Component
-  innerComponents?: ComponentConfig[];
+  // innerComponents?: ComponentConfig[];
 
-  // For Objet Component
   components?: ComponentConfig[];
 
   children?: React.ReactNode;
@@ -155,5 +191,7 @@ export type ComponentConfig = {
   //   change?: ChangeAction;
   //   blur?: BlurAction;
   // };
-  css?: Interpolation<Theme>;
+  // css?: Interpolation<Theme>;
+
+  // Table
 };

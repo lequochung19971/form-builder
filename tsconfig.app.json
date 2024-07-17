@@ -22,7 +22,12 @@
     /* Linting */
     "strict": true,
     "noFallthroughCasesInSwitch": true,
-    "jsxImportSource": "@emotion/react"
+    "jsxImportSource": "@emotion/react",
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+    },
   },
   "include": [
     "src"

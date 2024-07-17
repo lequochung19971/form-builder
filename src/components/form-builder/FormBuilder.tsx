@@ -265,10 +265,23 @@ const createFormBuilder = (args: {
     const componentControl = {
       ...control,
       ...arrayField,
-      generateInnerComponentInstances: (arrayFields) => {
+      setInnerComponentInstances: (arrayFields) => {
         if (arrayFields.length) {
+          const currentArrayInstance = get(_componentInstances, mappedComponentInstanceName);
+          currentArrayInstance.__control.updateValues?.(arrayFields);
           const result = produce(_componentInstances, (draft) => {
+            // const ids = arrayFields.map((f) => f.id) as string[];
             const currentArrayInstance = get(draft, mappedComponentInstanceName);
+            // mutateComponentInstance(
+            //   draft as Record<string, ComponentInstance>,
+            //   mappedComponentInstanceName,
+            //   {
+            //     __control: {
+            //       ...currentArrayInstance.__control,
+            //       ids: ids,
+            //     },
+            //   }
+            // );
 
             Array(arrayFields.length)
               .fill(0)
@@ -803,22 +816,18 @@ export const useArrayComponent = (props: ComponentItemProps) => {
     componentConfig.name,
     parentPaths
   );
+
   const componentInstance = useMemo(
     () => get(componentInstances, mappedComponentInstanceName),
     [componentInstances, mappedComponentInstanceName]
   );
-  const componentInstanceRef = useRef(componentInstance);
-  componentInstanceRef.current = componentInstance;
 
   const [fields, setFields] = React.useState(
     control._getFieldArray(mappedFieldValueName) as Record<string, string>[]
   );
-  // const ids = React.useRef<string[]>(
-  //   control._getFieldArray(mappedFieldValueName).map(() => uuidV4())
-  // );
+
   const _fieldsRef = React.useRef(fields);
   const _name = React.useRef(mappedFieldValueName);
-  // const _actioned = React.useRef(false);
 
   _name.current = mappedFieldValueName;
   _fieldsRef.current = fields;
@@ -831,11 +840,6 @@ export const useArrayComponent = (props: ComponentItemProps) => {
   //   );
 
   const observer = (updateFields: Record<string, string>[]) => {
-    // componentInstance.__control = {
-    //   ...componentInstance.__control,
-    //   fields: cloneDeep(updateFields),
-    // };
-    // componentInstanceRef.current.__control.fields = cloneDeep(updateFields);
     setFields([...updateFields]);
   };
   const observerRef = useRef(observer);
@@ -867,14 +871,12 @@ export const useArrayComponent = (props: ComponentItemProps) => {
       if (fieldArrayName === mappedFieldValueName || !fieldArrayName) {
         const fieldValues = get(values, mappedFieldValueName);
         if (Array.isArray(fieldValues)) {
-          // console.log(componentInstances);
-          // componentInstance.__control.ids = fieldValues.map(() => uuidV4());
-          // componentInstance.__control.fields = fieldValues.map((field, index) => ({
+          // const newFields = fieldValues.map((field, index) => ({
           //   ...field,
-          //   ['id']: componentInstance.__control.ids?.[index] || uuidV4(),
+          //   ['id']: uuidV4(),
           // }));
-          // setFields(componentInstance.__control.fields);
-          componentInstance.__control.generateInnerComponentInstances?.(fieldValues);
+          // setFields(newFields);
+          componentInstance.__control.setInnerComponentInstances?.(fieldValues);
         }
       }
     },
@@ -883,8 +885,6 @@ export const useArrayComponent = (props: ComponentItemProps) => {
 
   React.useEffect(() => {
     componentInstance.__control.updateFormState?.();
-    console.log(mappedFieldValueName);
-    componentInstance.__control.logPrivateVars?.();
   }, [fields, control, componentInstance.__control]);
 
   const validate = useMemo(
@@ -904,12 +904,6 @@ export const useArrayComponent = (props: ComponentItemProps) => {
     control.register(mappedFieldValueName, {
       validate,
     });
-  // console.log(
-  //   mappedFieldValueName,
-  //   'componentInstance.__control._ids',
-  //   componentInstance.__control.ids,
-  //   componentInstance.__control.fields
-  // );
 
   return {
     fields,
@@ -1146,62 +1140,11 @@ export const FormBuilder: React.FunctionComponent<FormBuilderProps> = (props) =>
     defaultValues,
     mode: 'all',
   }) as UseFormReturn<FieldValues, any, FieldValues>;
-  console.log('watch', form.getValues('array[0].object.secondArray'));
 
   const formBuilder = useFormBuilder({
     form,
     componentConfigs: components,
   });
-
-  // const setComponentInstance = (name: string, instance: PartialComponentInstance) => {
-  //   setComponentInstances?.((prev) => {
-  //     return produce(prev, (draft) => {
-  //       const prevComponentInstance = get(draft, name) ?? {};
-
-  //       const newComponentInstance = merge(prevComponentInstance, instance);
-
-  //       set(draft, name, newComponentInstance);
-  //     });
-  //   });
-  // };
-
-  // const getComponentInstances = useCallback(
-  //   (name: string | string[]): ComponentInstance | ComponentInstance[] => {
-  //     if (Array.isArray(name)) {
-  //       return name.reduce((result, n) => {
-  //         if (get(componentInstances, n)) {
-  //           result.concat(get(componentInstances, n));
-  //         }
-
-  //         return result;
-  //       }, [] as ComponentInstance[]);
-  //     }
-
-  //     return get(componentInstances, name);
-  //   },
-  //   [componentInstances]
-  // );
-
-  // const formBuilderControl = useMemo<FormBuilderControl>(() => {
-  //   return {
-  //     getForm: () => form,
-  //     getComponentInstances: formBuilder.getComponentInstances,
-  //     setComponentInstance: formBuilder.setComponentInstances,
-  //     setComponentInstances: formBuilder.setComponentInstance,
-  //   } as unknown as FormBuilderControl;
-  // }, [
-  //   form,
-  //   formBuilder.getComponentInstances,
-  //   formBuilder.setComponentInstance,
-  //   formBuilder.setComponentInstances,
-  // ]);
-
-  // const memorizedFormBuilder = useRef<FormBuilderControl>(formBuilderControl);
-
-  // memorizedFormBuilder.current.getForm = formBuilderControl.getForm;
-  // memorizedFormBuilder.current.getComponentInstances = formBuilderControl.getComponentInstances;
-  // memorizedFormBuilder.current.setComponentInstance = formBuilderControl.setComponentInstance;
-  // memorizedFormBuilder.current.setComponentInstances = formBuilderControl.setComponentInstances;
 
   return (
     <FormProvider {...form}>

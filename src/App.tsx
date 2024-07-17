@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { FormBuilder } from './components/form-builder/FormBuilder';
 import { ComponentConfig, ComponentInstance, ComponentType } from './components/form-builder/types';
 import { TestHookForm } from './TestHookForm';
+import { DndTest } from './components/dnd/DndTest';
+import { PageBuilder } from './components/page-builder/PageBuilder';
 
 const components: ComponentConfig[] = [
   // {
@@ -144,11 +146,11 @@ const components: ComponentConfig[] = [
                 id: 'firstName',
                 name: 'firstName',
                 type: ComponentType.INPUT,
-                actions: {
-                  change(args) {
-                    console.log(args);
-                  },
-                },
+                // actions: {
+                //   change(args) {
+                //     console.log(args);
+                //   },
+                // },
               },
             ],
           },
@@ -157,18 +159,18 @@ const components: ComponentConfig[] = [
             name: 'button',
             children: 'Child button',
             type: ComponentType.BUTTON,
-            actions: {
-              click(args) {
-                const objectParent = args.control.getParents()[1].__children as {
-                  secondArray: ComponentInstance;
-                };
-                console.log(
-                  objectParent?.secondArray?.__control?.append?.({
-                    firstName: 'hung',
-                  })
-                );
-              },
-            },
+            // actions: {
+            //   click(args) {
+            //     const objectParent = args.control.getParents()[1].__children as {
+            //       secondArray: ComponentInstance;
+            //     };
+            //     console.log(
+            //       objectParent?.secondArray?.__control?.append?.({
+            //         firstName: 'hung',
+            //       })
+            //     );
+            //   },
+            // },
           },
         ],
       },
@@ -179,60 +181,33 @@ const components: ComponentConfig[] = [
     name: 'button',
     children: 'Root Butotn',
     type: ComponentType.BUTTON,
-    actions: {
-      click(args) {
-        const arrayControl = args.control.getComponentInstances('array') as ComponentInstance;
-        arrayControl?.__control?.append?.({
-          object: {
-            secondArray: [],
-          },
-        });
-        console.log(arrayControl);
-      },
-    },
-  },
-  {
-    id: 'button2',
-    name: 'button2',
-    children: 'Force Set',
-    type: ComponentType.BUTTON,
-    actions: {
-      click(args) {
-        const arrayControl = args.control.getComponentInstances('array') as ComponentInstance;
-        arrayControl.__control?.getForm?.().setValue?.('array', [
-          {
-            object: {
-              secondArray: [
-                {
-                  firstName: 'new',
-                },
-                {
-                  firstName: 'new',
-                },
-              ],
-            },
-          },
-        ]);
-
-        console.log(arrayControl);
-      },
-    },
+    // actions: {
+    //   click(args) {
+    //     const arrayControl = args.control.getComponentInstances('array') as ComponentInstance;
+    //     arrayControl?.__control?.append?.({
+    //       object: {
+    //         secondArray: [],
+    //       },
+    //     });
+    //     console.log(arrayControl);
+    //   },
+    // },
   },
 ];
 
 export default function App() {
   const [count, setCount] = useState(0);
 
-  return (
-    <div className="App">
-      <FormBuilder
-        components={components}
-        defaultValues={{
-          firstName: '',
-        }}
-      />
-      <Button onClick={() => setCount((prev) => prev + 1)}>Click</Button>
-    </div>
-  );
-  // return <TestHookForm />;
+  // return (
+  //   <div className="App">
+  //     <FormBuilder
+  //       components={components}
+  //       defaultValues={{
+  //         firstName: '',
+  //       }}
+  //     />
+  //     <Button onClick={() => setCount((prev) => prev + 1)}>Click</Button>
+  //   </div>
+  // );
+  return <PageBuilder defaultValues={{}} />;
 }
