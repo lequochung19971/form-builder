@@ -1,12 +1,8 @@
 /** @jsx jsx */
 import { jsx, useTheme } from '@emotion/react';
-import { Button } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
-import { FormBuilder } from './components/form-builder/FormBuilder';
-import { ComponentConfig, ComponentInstance, ComponentType } from './components/form-builder/types';
-import { TestHookForm } from './TestHookForm';
-import { DndTest } from './components/dnd/DndTest';
-import { PageBuilder } from './components/page-builder/PageBuilder';
+import { ComponentConfig, ComponentType } from './page-builder/types';
+import { PageBuilder } from './page-builder/PageBuilder';
 
 const components: ComponentConfig[] = [
   // {
@@ -127,72 +123,72 @@ const components: ComponentConfig[] = [
   //     },
   //   ],
   // },
-  {
-    id: 'array',
-    name: 'array',
-    type: ComponentType.ARRAY_CONTAINER,
-    innerComponents: [
-      {
-        id: '1',
-        name: 'object',
-        type: ComponentType.OBJECT_CONTAINER,
-        components: [
-          {
-            id: 'secondArray',
-            name: 'secondArray',
-            type: ComponentType.ARRAY_CONTAINER,
-            innerComponents: [
-              {
-                id: 'firstName',
-                name: 'firstName',
-                type: ComponentType.INPUT,
-                // actions: {
-                //   change(args) {
-                //     console.log(args);
-                //   },
-                // },
-              },
-            ],
-          },
-          {
-            id: 'button',
-            name: 'button',
-            children: 'Child button',
-            type: ComponentType.BUTTON,
-            // actions: {
-            //   click(args) {
-            //     const objectParent = args.control.getParents()[1].__children as {
-            //       secondArray: ComponentInstance;
-            //     };
-            //     console.log(
-            //       objectParent?.secondArray?.__control?.append?.({
-            //         firstName: 'hung',
-            //       })
-            //     );
-            //   },
-            // },
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: 'button',
-    name: 'button',
-    children: 'Root Butotn',
-    type: ComponentType.BUTTON,
-    // actions: {
-    //   click(args) {
-    //     const arrayControl = args.control.getComponentInstances('array') as ComponentInstance;
-    //     arrayControl?.__control?.append?.({
-    //       object: {
-    //         secondArray: [],
-    //       },
-    //     });
-    //     console.log(arrayControl);
-    //   },
-    // },
-  },
+  // {
+  //   id: 'array',
+  //   name: 'array',
+  //   type: ComponentType.ARRAY_CONTAINER,
+  //   components: [
+  //     {
+  //       id: '1',
+  //       name: 'object',
+  //       type: ComponentType.OBJECT_CONTAINER,
+  //       components: [
+  //         {
+  //           id: 'secondArray',
+  //           name: 'secondArray',
+  //           type: ComponentType.ARRAY_CONTAINER,
+  //           components: [
+  //             {
+  //               id: 'firstName',
+  //               name: 'firstName',
+  //               type: ComponentType.INPUT,
+  //               // actions: {
+  //               //   change(args) {
+  //               //     console.log(args);
+  //               //   },
+  //               // },
+  //             },
+  //           ],
+  //         },
+  //         {
+  //           id: 'button',
+  //           name: 'button',
+  //           children: 'Child button',
+  //           type: ComponentType.BUTTON,
+  //           // actions: {
+  //           //   click(args) {
+  //           //     const objectParent = args.control.getParents()[1].__children as {
+  //           //       secondArray: ComponentInstance;
+  //           //     };
+  //           //     console.log(
+  //           //       objectParent?.secondArray?.__control?.append?.({
+  //           //         firstName: 'hung',
+  //           //       })
+  //           //     );
+  //           //   },
+  //           // },
+  //         },
+  //       ],
+  //     },
+  //   ],
+  // },
+  // {
+  //   id: 'button',
+  //   name: 'button',
+  //   children: 'Root Butotn',
+  //   type: ComponentType.BUTTON,
+  //   // actions: {
+  //   //   click(args) {
+  //   //     const arrayControl = args.control.getComponentInstances('array') as ComponentInstance;
+  //   //     arrayControl?.__control?.append?.({
+  //   //       object: {
+  //   //         secondArray: [],
+  //   //       },
+  //   //     });
+  //   //     console.log(arrayControl);
+  //   //   },
+  //   // },
+  // },
 ];
 
 export default function App() {
@@ -209,5 +205,5 @@ export default function App() {
   //     <Button onClick={() => setCount((prev) => prev + 1)}>Click</Button>
   //   </div>
   // );
-  return <PageBuilder defaultValues={{}} />;
+  return <PageBuilder />;
 }
