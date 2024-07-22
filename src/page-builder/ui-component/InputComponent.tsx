@@ -2,11 +2,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import * as React from 'react';
 import { DragDropWrapper } from '../dnd/DragDropWrapper';
-import { useUIComponent } from '../hooks';
 import { usePageBuilderContext } from '../PageBuilder';
-import { BaseComponentProps, ComponentConfig } from '../types';
+import { useUIComponent } from '@/ui-builder/useUIComponent';
+import { BaseComponentProps } from '../types';
 
-export type InputComponentProps = BaseComponentProps<ComponentConfig>;
+export type InputComponentProps = BaseComponentProps;
 export const InputComponent: React.FunctionComponent<InputComponentProps> = (props) => {
   const { componentConfig, parentPaths: parentPaths, index, parentId } = props;
   const { isBuildingMode } = usePageBuilderContext();
@@ -14,7 +14,6 @@ export const InputComponent: React.FunctionComponent<InputComponentProps> = (pro
   useUIComponent({
     componentConfig,
     parentPaths: parentPaths,
-    index,
   });
 
   const input = (

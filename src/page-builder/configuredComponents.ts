@@ -1,4 +1,3 @@
-import { ComponentConfig, ComponentType, ParentPath } from './types';
 import ButtonComponent, { ButtonComponentProps } from './ui-component/ButtonComponent';
 import { ContainerComponent, ContainerComponentProps } from './ui-component/ContainerComponent';
 import { InputComponent, InputComponentProps } from './ui-component/InputComponent';
@@ -7,6 +6,8 @@ import { TabsComponent, TabsComponentProps } from './ui-component/TabsComponent'
 import { ArrayComponent } from './form-component/ArrayComponent';
 import { InputFieldComponent } from './form-component/InputFieldComponent';
 import { FormComponent } from './form-component/FormComponent';
+import { ComponentConfig, ComponentType, ParentPath } from '@/ui-builder/types';
+import { ObjectComponent } from './form-component/ObjectComponent';
 
 export const configuredComponents = {
   [ComponentType.INPUT]: InputComponent,
@@ -16,6 +17,7 @@ export const configuredComponents = {
   [ComponentType.TABS]: TabsComponent,
   [ComponentType.INPUT_FIELD]: InputFieldComponent,
   [ComponentType.FORM]: FormComponent,
+  [ComponentType.OBJECT_CONTAINER]: ObjectComponent,
 };
 
 export type AllComponentProps = Partial<
@@ -59,7 +61,7 @@ export const getDefaultComponentConfig = (type: ComponentType): ComponentConfig 
       return {
         id: `${type}-${uuidV4()}`,
         componentName: '',
-        name: '',
+        fieldName: '',
         type,
       };
     }

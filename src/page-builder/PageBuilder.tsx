@@ -1,4 +1,6 @@
 import { Button } from '@/components/ui/button';
+import { ComponentConfig, ComponentType, ParentPath } from '@/ui-builder/types';
+import { useUIBuilder } from '@/ui-builder/useUIBuilder';
 import { cn } from '@/utils/uiUtils';
 import {
   DndContext,
@@ -13,16 +15,8 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { get, isNil } from 'lodash';
-import React, {
-  createContext,
-  forwardRef,
-  memo,
-  useContext,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { isNil } from 'lodash';
+import React, { createContext, forwardRef, memo, useContext, useMemo, useState } from 'react';
 import { v4 as uuidV4 } from 'uuid';
 import { ComponentToolbar } from './ComponentToolbar';
 import { NewComponentDraggable } from './NewComponentDraggable';
@@ -31,75 +25,17 @@ import {
   configuredComponents,
   getDefaultComponentConfig,
 } from './configuredComponents';
-import { PageBuilderControl, createPageBuilder } from './createPageBuilder';
 import { checkOverPosition } from './dnd/checkOverPosition';
 import { CustomMouseSensor, CustomPointerSensor } from './dnd/customSensor';
 import { ComponentPropertiesDialog } from './properties-configuration/ComponentPropertiesDialog';
-import {
-  CState,
-  ComponentConfig,
-  ComponentInstance,
-  ComponentType,
-  ParentPath,
-  PartialComponentInstance,
-} from './types';
-import {
-  addItemAtIndex,
-  flattenTree,
-  isDataArrayComponent,
-  moveItemToIndex,
-  removeItem,
-  updateItem,
-} from './utils';
-
-type UsePageBuilderReturn = {
-  control: PageBuilderControl;
-  setComponentInstance: (componentName: string, updatedInstance: PartialComponentInstance) => void;
-  getComponentInstances: (
-    componentName: string | string[]
-  ) => ComponentInstance | ComponentInstance[];
-  reset: (componentConfigs: ComponentConfig[]) => void;
-};
-
-const usePageBuilder = (props: { componentConfigs: ComponentConfig[] }): UsePageBuilderReturn => {
-  const pageBuilderControl = useRef<ReturnType<typeof createPageBuilder>>(
-    {} as ReturnType<typeof createPageBuilder>
-  );
-  if (!pageBuilderControl.current) {
-    pageBuilderControl.current = createPageBuilder(props);
-  }
-
-  // const [componentInstances, setComponentInstances] = useState(
-  //   formBuilderControl.current.componentInstances
-  // );
-
-  // useComponentSubscribe({
-  //   next({ componentInstances }) {
-  //     setComponentInstances(componentInstances);
-  //   },
-  //   subject: formBuilderControl.current.subjects.instances,
-  // });
-
-  return {
-    control: pageBuilderControl.current,
-    setComponentInstance: pageBuilderControl.current._setComponentInstance,
-    getComponentInstances: pageBuilderControl.current._getComponentInstances,
-    reset: (componentConfigs: ComponentConfig[]) => {
-      pageBuilderControl.current = createPageBuilder({
-        ...props,
-        componentConfigs,
-      });
-      pageBuilderControl.current._forceSubscribe();
-      // setComponentInstances(formBuilderControl.current.componentInstances);
-    },
-  };
-};
+import { addItemAtIndex, flattenTree, moveItemToIndex, removeItem, updateItem } from './utils';
+import { UIBuilderProvider } from '@/ui-builder/UIBuilderContext';
+import { isArrayFieldComponent } from '@/ui-builder/utils';
 
 type PageBuilderContextValue = {
-  pageBuilderMethods: UsePageBuilderReturn;
-  isBuildingMode?: boolean;
-  handleOnClickEditComponent?: (id: string) => void;
-  handleOnClickDeleteComponent?: (id: string) => void;
+  isBuildingMode: boolean;
+  handleOnClickEditComponent: (id: string) => void;
+  handleOnClickDeleteComponent: (id: string) => void;
 };
 
 const PageBuilderContext = createContext<PageBuilderContextValue>({} as PageBuilderContextValue);
@@ -111,31 +47,6 @@ export type ComponentItemProps = {
   parentPaths: ParentPath[];
   index: number;
   parentId?: string;
-};
-
-const useWatchComponentStates = (props: {
-  componentInstances: Record<string, ComponentInstance>;
-  keys: string[];
-}) => {
-  const { componentInstances, keys } = props;
-  const memorizedComponentStates = useRef([] as CState[]);
-  const watchedComponentStates = keys.reduce(
-    (result, key) =>
-      get(componentInstances, key)
-        ? result.concat(get(componentInstances, key) as unknown as CState)
-        : result,
-    [] as CState[]
-  );
-
-  const hasChanged =
-    !!watchedComponentStates.length &&
-    (memorizedComponentStates.current.length !== watchedComponentStates.length ||
-      watchedComponentStates.some((cs, index) => cs !== memorizedComponentStates.current[index]));
-
-  if (hasChanged) {
-    memorizedComponentStates.current = watchedComponentStates;
-  }
-  return memorizedComponentStates.current;
 };
 
 export const ComponentItem: React.FunctionComponent<ComponentItemProps> = memo((props) => {
@@ -204,20 +115,23 @@ const measuring: MeasuringConfiguration = {
   },
 };
 
-export const PageBuilder: React.FunctionComponent = () => {
-  const pageBuilderMethods = usePageBuilder({
-    componentConfigs: [],
+export const PageBuilder: React.FunctionComponent<{
+  defaultComponentConfigs?: ComponentConfig[];
+}> = ({ defaultComponentConfigs = [] }) => {
+  const uiBuilderMethods = useUIBuilder({
+    componentConfigs: defaultComponentConfigs,
   });
   const [selectedComponentConfig, setSelectedComponentConfig] =
     useState<Partial<ComponentConfig>>();
+  const [isBuildingMode, setIsBuildingMode] = useState(true);
   const [overAt, setOverAt] = useState<{ parentId?: string; index?: number }>({
     parentId: '',
     index: 0,
   });
 
-  const [componentConfigs, setComponentConfigs] = useState<ComponentConfig[]>(
-    [] as ComponentConfig[]
-  );
+  const [componentConfigs, setComponentConfigs] =
+    useState<ComponentConfig[]>(defaultComponentConfigs);
+  console.log(componentConfigs);
   const [activeData, setActiveData] = useState<{
     item?: ComponentConfig;
     isNew?: boolean;
@@ -231,7 +145,7 @@ export const PageBuilder: React.FunctionComponent = () => {
 
   const updateComponentConfigs = (configs: ComponentConfig[]) => {
     setComponentConfigs(configs);
-    pageBuilderMethods.reset(configs);
+    uiBuilderMethods.reset(configs);
   };
 
   const flattenedData = useMemo(() => flattenTree(componentConfigs), [componentConfigs]);
@@ -350,7 +264,7 @@ export const PageBuilder: React.FunctionComponent = () => {
 
     const config = {
       ...values,
-      defaultValue: isDataArrayComponent(values.type!) ? [{}] : undefined,
+      defaultValue: isArrayFieldComponent(values.type!) ? [{}] : undefined,
     };
 
     // Add New
@@ -398,6 +312,7 @@ export const PageBuilder: React.FunctionComponent = () => {
         sensors={sensors}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}>
+        <Button onClick={() => setIsBuildingMode((prev) => !prev)}>Toggle mode</Button>
         <div className="space-x-4 mb-4 p-4 border border-dotted border-muted-foreground rounded-md">
           <NewComponentDraggable type={ComponentType.INPUT} name={ComponentType.INPUT} />
           <NewComponentDraggable type={ComponentType.TABS} name={ComponentType.TABS} />
@@ -417,21 +332,22 @@ export const PageBuilder: React.FunctionComponent = () => {
           <div className="border border-muted-foreground rounded-md p-4">
             <PageBuilderContext.Provider
               value={{
-                pageBuilderMethods,
-                isBuildingMode: true,
+                isBuildingMode,
                 handleOnClickDeleteComponent,
                 handleOnClickEditComponent,
               }}>
-              <form className="space-y-4">
-                {componentConfigs.map((component, index) => (
-                  <ComponentItem
-                    key={component.id}
-                    componentConfig={component}
-                    parentPaths={[]}
-                    index={index}
-                  />
-                ))}
-              </form>
+              <UIBuilderProvider {...uiBuilderMethods}>
+                <div className="space-y-4">
+                  {componentConfigs.map((component, index) => (
+                    <ComponentItem
+                      key={component.id}
+                      componentConfig={component}
+                      parentPaths={[]}
+                      index={index}
+                    />
+                  ))}
+                </div>
+              </UIBuilderProvider>
             </PageBuilderContext.Provider>
           </div>
         )}

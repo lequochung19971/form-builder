@@ -17,7 +17,7 @@ export const ArrayComponentProperties: React.FunctionComponent<BaseComponentProp
     <Form {...formMethods}>
       <form onSubmit={formMethods.handleSubmit(onSubmit!)} className="space-y-4 w-full">
         <InputFormField name="componentName" label="Component Key" placeholder="Component Key" />
-        <InputFormField name="name" label="Field Key" placeholder="Field Key" />
+        <InputFormField name="fieldName" label="Field Key" placeholder="Field Key" />
         <div className="flex justify-end">
           <Button type="submit" size="sm">
             Submit

@@ -1,14 +1,14 @@
 import { Label } from '@/components/ui/label';
 import React from 'react';
 import { ComponentItem, usePageBuilderContext } from '../PageBuilder';
-import { BaseComponentProps, ComponentConfig } from '../types';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DragDropWrapper } from '../dnd/DragDropWrapper';
 import { DropHerePlaceholder } from '../DropHerePlaceholder';
-import { useUIComponent } from '../hooks';
+import { useUIComponent } from '@/ui-builder/useUIComponent';
+import { BaseComponentProps } from '../types';
 
-export type TabsComponentProps = BaseComponentProps<ComponentConfig>;
+export type TabsComponentProps = BaseComponentProps;
 
 export const TabsComponent: React.FunctionComponent<TabsComponentProps> = (props) => {
   const { componentConfig, parentPaths: parentPaths, index, parentId } = props;
@@ -17,12 +17,11 @@ export const TabsComponent: React.FunctionComponent<TabsComponentProps> = (props
   useUIComponent({
     componentConfig,
     parentPaths: parentPaths,
-    index,
   });
 
   const tabsComponent = () => (
     <div className="w-full">
-      <Label>{componentConfig.name}</Label>
+      <Label>{componentConfig.fieldName}</Label>
       <Tabs
         defaultValue={componentConfig?.components?.[0].id}
         onMouseDown={(event) => {

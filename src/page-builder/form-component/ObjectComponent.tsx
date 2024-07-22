@@ -1,36 +1,17 @@
-import { useMemo } from 'react';
+import { useFormFieldComponent } from '@/ui-builder/useFormFieldComponent';
 import { ComponentItem } from '../PageBuilder';
-import { BaseComponentProps, ComponentConfig } from '../types';
-import { useFormComponent } from '../hooks';
+import { BaseComponentProps } from '../types';
 
-export type ObjectComponentProps = BaseComponentProps<ComponentConfig>;
+export type ObjectComponentProps = BaseComponentProps;
 
 export const ObjectComponent: React.FunctionComponent<ObjectComponentProps> = (props) => {
-  const { componentConfig, parentPaths: parentPaths, index, parentId } = props;
+  const { componentConfig, parentPaths: parentPaths } = props;
   const { components } = componentConfig;
 
-  useFormComponent({
+  useFormFieldComponent({
     componentConfig,
     parentPaths: parentPaths,
-    index,
   });
-
-  const mappedParentPaths = useMemo(
-    () =>
-      parentPaths?.concat({
-        name: componentConfig.name,
-        componentName: componentConfig.componentName,
-        id: componentConfig.id,
-        type: componentConfig.type,
-      }),
-    [
-      componentConfig.componentName,
-      componentConfig.id,
-      componentConfig.name,
-      componentConfig.type,
-      parentPaths,
-    ]
-  );
 
   return (
     <div>
@@ -38,9 +19,14 @@ export const ObjectComponent: React.FunctionComponent<ObjectComponentProps> = (p
         <ComponentItem
           index={index}
           parentId={componentConfig.id}
-          key={`${com.id}-${index}`}
+          key={com.id}
           componentConfig={com}
-          parentPaths={mappedParentPaths}
+          parentPaths={parentPaths?.concat({
+            fieldName: componentConfig.fieldName,
+            componentName: componentConfig.componentName,
+            id: componentConfig.id,
+            type: componentConfig.type,
+          })}
         />
       ))}
     </div>

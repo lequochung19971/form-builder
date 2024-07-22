@@ -1,19 +1,17 @@
-import { Subject } from '@/form/utils/createSubject';
+import { Subject } from '@/utils/createSubject';
 import React from 'react';
 
 type Props<T> = {
-  disabled?: boolean;
   subject: Subject<T>;
   next: (value: T) => void;
 };
 
-export function useFormSubscribe<T>(props: Props<T>) {
+export function useComponentSubscribe<T>(props: Props<T>) {
   const _props = React.useRef(props);
   _props.current = props;
 
   React.useEffect(() => {
     const subscription =
-      !props.disabled &&
       _props.current.subject &&
       _props.current.subject.subscribe({
         next: _props.current.next,
@@ -22,5 +20,5 @@ export function useFormSubscribe<T>(props: Props<T>) {
     return () => {
       subscription && subscription.unsubscribe();
     };
-  }, [props.disabled]);
+  }, []);
 }

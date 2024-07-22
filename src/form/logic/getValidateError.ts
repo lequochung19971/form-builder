@@ -1,5 +1,5 @@
 import { FieldError, Ref, ValidateResult } from 'react-hook-form';
-import isMessage from '../utils/isMessage';
+import isMessage from '@/utils/isMessage';
 import { isBoolean } from 'lodash';
 
 export default function getValidateError(

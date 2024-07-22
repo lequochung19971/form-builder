@@ -1,4 +1,4 @@
-import convertToArrayPayload from '../utils/convertToArrayPayload';
+import convertToArrayPayload from '@/utils/convertToArrayPayload';
 
 export default <T extends string | string[] | undefined>(
   name?: T,

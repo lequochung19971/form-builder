@@ -1,10 +1,10 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import React from 'react';
-import { ComponentType } from '../types';
 import { InputComponentProperties } from './InputComponentProperties';
 import { TabsComponentProperties } from './TabsComponentProperties';
 import { BaseComponentProperties } from './types';
 import { ArrayComponentProperties } from './ArrayComponentProperties';
+import { ComponentType } from '@/ui-builder/types';
 
 type ComponentPropertiesDialogProps = BaseComponentProperties & {
   open?: boolean;

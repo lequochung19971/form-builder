@@ -1,15 +1,15 @@
 import { VALIDATION_MODE } from '@/form/constants';
-import { appendAt } from '@/form/utils/append';
-import cloneObject from '@/form/utils/cloneObject';
-import convertToArrayPayload from '@/form/utils/convertToArrayPayload';
-import fillEmptyArray from '@/form/utils/fillEmptyArray';
-import insertAt from '@/form/utils/insert';
-import isEmptyObject from '@/form/utils/isEmptyObject';
-import moveArrayAt from '@/form/utils/move';
-import prependAt from '@/form/utils/prepend';
-import removeArrayAt from '@/form/utils/remove';
-import swapArrayAt from '@/form/utils/swap';
-import updateAt from '@/form/utils/update';
+import { appendAt } from '@/utils/append';
+import cloneObject from '@/utils/cloneObject';
+import convertToArrayPayload from '@/utils/convertToArrayPayload';
+import fillEmptyArray from '@/utils/fillEmptyArray';
+import insertAt from '@/utils/insert';
+import isEmptyObject from '@/utils/isEmptyObject';
+import moveArrayAt from '@/utils/move';
+import prependAt from '@/utils/prepend';
+import removeArrayAt from '@/utils/remove';
+import swapArrayAt from '@/utils/swap';
+import updateAt from '@/utils/update';
 import { get, set, unset } from 'lodash';
 import {
   Control,
@@ -348,7 +348,6 @@ export function createFieldArray<
     update,
     replace,
     cleanup,
-
     updateFormState,
     logPrivateVars: () => {
       console.log('ids', _ids);

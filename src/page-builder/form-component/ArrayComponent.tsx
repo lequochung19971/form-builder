@@ -1,20 +1,20 @@
-import { ComponentConfig, BaseComponentProps } from '../types';
 import { ComponentItem, usePageBuilderContext } from '../PageBuilder';
 import React from 'react';
 import { DragDropWrapper } from '../dnd/DragDropWrapper';
 import { DropHerePlaceholder } from '../DropHerePlaceholder';
-import { useArrayFieldComponent } from '../hooks';
+import { useArrayFieldComponent } from '@/ui-builder/useArrayFieldComponent';
+import { BaseComponentProps } from '../types';
+import { Button } from '@/components/ui/button';
 
-export type ArrayComponentProps = BaseComponentProps<ComponentConfig>;
+export type ArrayComponentProps = BaseComponentProps;
 
 export const ArrayComponent: React.FunctionComponent<ArrayComponentProps> = (props) => {
   const { componentConfig, parentPaths: parentPaths, index, parentId } = props;
   const { isBuildingMode } = usePageBuilderContext();
 
-  const { fields } = useArrayFieldComponent({
+  const { fields, componentInstance } = useArrayFieldComponent({
     componentConfig,
     parentPaths: parentPaths,
-    index,
   });
 
   if (isBuildingMode) {
@@ -37,7 +37,7 @@ export const ArrayComponent: React.FunctionComponent<ArrayComponentProps> = (pro
               parentPaths={parentPaths?.concat({
                 id: componentConfig.id,
                 type: componentConfig.type,
-                name: componentConfig.name,
+                fieldName: componentConfig.fieldName,
                 componentName: componentConfig.componentName,
                 index: 0,
               })}
@@ -50,7 +50,7 @@ export const ArrayComponent: React.FunctionComponent<ArrayComponentProps> = (pro
 
   return (
     <div className="w-full flex flex-col space-y-4">
-      {fields?.map((field, idx) => (
+      {fields?.map((field, fieldIndex) => (
         <React.Fragment key={field.id}>
           {componentConfig.components?.map((com, index) => (
             <ComponentItem
@@ -61,14 +61,52 @@ export const ArrayComponent: React.FunctionComponent<ArrayComponentProps> = (pro
               parentPaths={parentPaths?.concat({
                 id: componentConfig.id,
                 type: componentConfig.type,
-                name: componentConfig.name,
+                fieldName: componentConfig.fieldName,
                 componentName: componentConfig.componentName,
-                index: idx,
+                index: fieldIndex,
               })}
             />
           ))}
+          <div className="space-x-2">
+            <Button onClick={() => componentInstance.__control.remove(fieldIndex)}>Delete</Button>
+            <Button onClick={() => componentInstance.__control.logPrivateVars()}>Log</Button>
+          </div>
         </React.Fragment>
       ))}
+      <Button
+        onClick={() =>
+          componentInstance.__control.append({
+            firstName: `Append-${Math.floor(Math.random() * 1000)}`,
+          })
+        }>
+        Append
+      </Button>
+      <Button
+        onClick={() =>
+          componentInstance.__control.prepend({
+            firstName: `Prepend-${Math.floor(Math.random() * 1000)}`,
+          })
+        }>
+        Prepend
+      </Button>
+      <Button onClick={() => componentInstance.__control.swap(1, 3)}>Swap</Button>
+      <Button onClick={() => componentInstance.__control.move(1, 3)}>Move</Button>
+      <Button
+        onClick={() =>
+          componentInstance.__control.insert(1, {
+            firstName: `insert-${Math.floor(Math.random() * 1000)}`,
+          })
+        }>
+        Insert
+      </Button>
+      <Button
+        onClick={() =>
+          componentInstance.__control.update(1, {
+            firstName: `update-${Math.floor(Math.random() * 1000)}`,
+          })
+        }>
+        Update
+      </Button>
     </div>
   );
 };

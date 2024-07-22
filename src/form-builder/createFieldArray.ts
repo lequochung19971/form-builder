@@ -15,22 +15,22 @@ import {
   Field,
 } from 'react-hook-form';
 import { v4 as uuidV4 } from 'uuid';
-import cloneObject from '../../utils/cloneObject';
-import convertToArrayPayload from '../../utils/convertToArrayPayload';
-import fillEmptyArray from '../../utils/fillEmptyArray';
-import isEmptyObject from '../../utils/isEmptyObject';
-import { appendAt } from '../../utils/append';
+import cloneObject from '@/utils/cloneObject';
+import convertToArrayPayload from '@/utils/convertToArrayPayload';
+import fillEmptyArray from '@/utils/fillEmptyArray';
+import isEmptyObject from '@/utils/isEmptyObject';
+import { appendAt } from '@/utils/append';
 import updateFieldArrayRootError from '../form/logic/updateFieldArrayRootError';
 import validateField from '../form/logic/validateField';
 import getValidationModes from '../form/logic/getValidationModes';
 import isWatched from '../form/logic/isWatched';
 import getFocusFieldName from '../form/logic/getFocusFieldName';
-import insertAt from '../../utils/insert';
-import moveArrayAt from '../../utils/move';
-import prependAt from '../../utils/prepend';
-import removeArrayAt from '../../utils/remove';
-import swapArrayAt from '../../utils/swap';
-import updateAt from '../../utils/update';
+import insertAt from '@/utils/insert';
+import moveArrayAt from '@/utils/move';
+import prependAt from '@/utils/prepend';
+import removeArrayAt from '@/utils/remove';
+import swapArrayAt from '@/utils/swap';
+import updateAt from '@/utils/update';
 import { VALIDATION_MODE } from '../../constants';
 import iterateFieldsByAction from '../form/logic/iterateFieldsByAction';
 

@@ -8,10 +8,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { BaseComponentProps, ComponentConfig } from '../types';
 import React from 'react';
+import { BaseComponentProps } from '../types';
 
-export type ArrayComponentProps = BaseComponentProps<ComponentConfig>;
+export type ArrayComponentProps = BaseComponentProps;
 
 export const DataTableComponent: React.FunctionComponent<ArrayComponentProps> = () => {
   return (

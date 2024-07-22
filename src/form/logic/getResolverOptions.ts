@@ -6,8 +6,8 @@ import {
   FieldValues,
   InternalFieldName,
 } from 'react-hook-form';
-import get from '../utils/get';
-import set from '../utils/set';
+import get from '@/utils/get';
+import set from '@/utils/set';
 
 export default <TFieldValues extends FieldValues>(
   fieldsNames: Set<InternalFieldName> | InternalFieldName[],

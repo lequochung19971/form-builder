@@ -43,12 +43,12 @@ import {
   Ref,
 } from 'react-hook-form';
 
-import cloneObject from '../utils/cloneObject';
-import convertToArrayPayload from '../utils/convertToArrayPayload';
-import deepEqual from '../utils/deepEqual';
-import get from '../utils/get';
-import isRadioOrCheckbox from '../utils/isRadioOrCheckbox';
-import live from '../utils/live';
+import cloneObject from '@/utils/cloneObject';
+import convertToArrayPayload from '@/utils/convertToArrayPayload';
+import deepEqual from '@/utils/deepEqual';
+import get from '@/utils/get';
+import isRadioOrCheckbox from '@/utils/isRadioOrCheckbox';
+import live from '@/utils/live';
 
 import generateWatchOutput from './generateWatchOutput';
 import getDirtyFields from './getDirtyFields';
@@ -78,17 +78,17 @@ import {
   set,
   unset,
 } from 'lodash';
-import createSubject from '../utils/createSubject';
-import isEmptyObject from '../utils/isEmptyObject';
-import objectHasTruthyValue from '../utils/objectHasTruthyValue';
-import isHTMLElement from '../utils/isHTMLElement';
-import isNullOrUndefined from '../utils/isNullOrUndefined';
-import isMultipleSelect from '../utils/isMultipleSelect';
-import isCheckBoxInput from '../utils/isCheckBoxInput';
-import isFileInput from '../utils/isFileInput';
-import isDateObject from '../utils/isDateObject';
-import isWeb from '../utils/isWeb';
-import isPrimitive from '../utils/isPrimitive';
+import createSubject from '@/utils/createSubject';
+import isEmptyObject from '@/utils/isEmptyObject';
+import objectHasTruthyValue from '@/utils/objectHasTruthyValue';
+import isHTMLElement from '@/utils/isHTMLElement';
+import isNullOrUndefined from '@/utils/isNullOrUndefined';
+import isMultipleSelect from '@/utils/isMultipleSelect';
+import isCheckBoxInput from '@/utils/isCheckBoxInput';
+import isFileInput from '@/utils/isFileInput';
+import isDateObject from '@/utils/isDateObject';
+import isWeb from '@/utils/isWeb';
+import isPrimitive from '@/utils/isPrimitive';
 
 const defaultOptions = {
   mode: VALIDATION_MODE.onSubmit,

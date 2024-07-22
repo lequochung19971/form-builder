@@ -1,7 +1,7 @@
+import { ComponentConfig } from '@/ui-builder/types';
 import { cn } from '@/utils/uiUtils';
 import { useDroppable } from '@dnd-kit/core';
 import { forwardRef } from 'react';
-import { ComponentConfig } from './types';
 
 export const DropHerePlaceholder = forwardRef<
   any,

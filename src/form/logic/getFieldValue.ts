@@ -1,12 +1,12 @@
 import { Field } from 'react-hook-form';
-import isFileInput from '../utils/isFileInput';
-import isMultipleSelect from '../utils/isMultipleSelect';
-import isRadioInput from '../utils/isRadioInput';
+import isFileInput from '@/utils/isFileInput';
+import isMultipleSelect from '@/utils/isMultipleSelect';
+import isRadioInput from '@/utils/isRadioInput';
 import getCheckboxValue from './getCheckboxValue';
 import getFieldValueAs from './getFieldValueAs';
 import getRadioValue from './getRadioValue';
 import { isUndefined } from 'lodash';
-import isCheckBoxInput from '../utils/isCheckBoxInput';
+import isCheckBoxInput from '@/utils/isCheckBoxInput';
 
 export default function getFieldValue(_f: Field['_f']) {
   const ref = _f.ref;

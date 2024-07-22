@@ -3,10 +3,10 @@ import { Label } from '@/components/ui/label';
 import * as React from 'react';
 import { usePageBuilderContext } from '../PageBuilder';
 import { DragDropWrapper } from '../dnd/DragDropWrapper';
-import { BaseComponentProps, ComponentConfig } from '../types';
-import { useFormFieldComponent } from '../hooks';
+import { useFormFieldComponent } from '@/ui-builder/useFormFieldComponent';
+import { BaseComponentProps } from '../types';
 
-export type InputFieldComponentProps = BaseComponentProps<ComponentConfig>;
+export type InputFieldComponentProps = BaseComponentProps;
 export const InputFieldComponent: React.FunctionComponent<InputFieldComponentProps> = (props) => {
   const { componentConfig, parentPaths: parentPaths, index, parentId } = props;
   const { isBuildingMode } = usePageBuilderContext();
@@ -14,7 +14,6 @@ export const InputFieldComponent: React.FunctionComponent<InputFieldComponentPro
   const { field } = useFormFieldComponent({
     componentConfig,
     parentPaths: parentPaths,
-    index,
   });
 
   const input = (

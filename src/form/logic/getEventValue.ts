@@ -1,5 +1,5 @@
 import { isObject } from 'lodash';
-import isCheckBoxInput from '../utils/isCheckBoxInput';
+import isCheckBoxInput from '@/utils/isCheckBoxInput';
 
 type Event = { target: any };
 

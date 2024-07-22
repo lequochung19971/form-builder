@@ -1,5 +1,5 @@
 import { FieldRefs, InternalFieldName, Ref } from 'react-hook-form';
-import get from '../utils/get';
+import get from '@/utils/get';
 import { isObject } from 'lodash';
 
 const iterateFieldsByAction = (

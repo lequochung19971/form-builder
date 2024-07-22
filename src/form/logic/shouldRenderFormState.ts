@@ -1,6 +1,6 @@
 import { Control, FieldValues, FormState, InternalFieldName, ReadFormState } from 'react-hook-form';
 import { VALIDATION_MODE } from '../constants';
-import isEmptyObject from '../utils/isEmptyObject';
+import isEmptyObject from '@/utils/isEmptyObject';
 
 export default <T extends FieldValues, K extends ReadFormState>(
   formStateData: Partial<FormState<T>> & { name?: InternalFieldName },

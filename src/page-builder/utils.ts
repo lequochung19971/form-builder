@@ -1,43 +1,6 @@
 import { get, isNil, merge } from 'lodash';
-import { ComponentConfig, ComponentInstance, ComponentType, ParentPath } from './types';
-import convertToArrayPayload from '@/form/utils/convertToArrayPayload';
-
-export const isDataComponent = (type: ComponentType) => {
-  return [
-    ComponentType.INPUT_FIELD,
-    ComponentType.ARRAY_CONTAINER,
-    ComponentType.OBJECT_CONTAINER,
-    ComponentType.SUBMIT_BUTTON,
-  ].includes(type);
-};
-
-export const isUIComponent = (type: ComponentType) => {
-  return [
-    ComponentType.INPUT,
-    ComponentType.CONTAINER,
-    ComponentType.FORM,
-    ComponentType.BUTTON,
-    ComponentType.TABS,
-    ComponentType.TAB,
-  ].includes(type);
-};
-
-export const isUIContainerComponent = (type: ComponentType) => {
-  return [
-    ComponentType.CONTAINER,
-    ComponentType.FORM,
-    ComponentType.TABS,
-    ComponentType.TAB,
-  ].includes(type);
-};
-
-export const isDataArrayComponent = (type: ComponentType) => {
-  return [ComponentType.ARRAY_CONTAINER, ComponentType.DATA_TABLE].includes(type);
-};
-
-export const isFormComponent = (type: ComponentType) => {
-  return [ComponentType.FORM].includes(type);
-};
+import { ComponentConfig, ComponentInstance, ParentPath } from '../ui-builder/types';
+import convertToArrayPayload from '@/utils/convertToArrayPayload';
 
 export function flattenTree(tree: ComponentConfig[]): ComponentConfig[] {
   const result: ComponentConfig[] = [];
@@ -194,7 +157,7 @@ export function getParentsById(tree: ComponentConfig[], itemId: string) {
       if (item.id === currentItemId) {
         return true;
       }
-      if (item.children) {
+      if (item.components) {
         const found = findParents(item.components ?? [], currentItemId);
         if (found) {
           parents.push(item);
@@ -227,27 +190,15 @@ const getParentsByParentPaths = (
     if (step) {
       step =
         typeof path.index === 'number'
-          ? `${step}.${path.name}.__children[${path.index}]`
-          : `${step}.${path.name}.__children`;
+          ? `${step}.${path.fieldName}.__children[${path.index}]`
+          : `${step}.${path.fieldName}.__children`;
     } else {
       step =
         typeof path.index === 'number'
-          ? `${path.name}.__children[${path.index}]`
-          : `${path.name}.__children`;
+          ? `${path.fieldName}.__children[${path.index}]`
+          : `${path.fieldName}.__children`;
     }
   });
 
   return result;
 };
-
-export const shouldSubscribeByComponentName = <T extends string | string[] | undefined>({
-  componentName,
-  signalName,
-}: {
-  componentName: T;
-  signalName?: string;
-}) =>
-  (!!componentName && componentName === signalName) ||
-  convertToArrayPayload(componentName).some(
-    (currentName) => currentName && currentName === signalName
-  );

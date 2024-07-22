@@ -1,7 +1,7 @@
 import { FieldValues, FieldErrors, FieldError, InternalFieldName } from 'react-hook-form';
-import convertToArrayPayload from '../utils/convertToArrayPayload';
-import get from '../utils/get';
-import set from '../utils/set';
+import convertToArrayPayload from '@/utils/convertToArrayPayload';
+import get from '@/utils/get';
+import set from '@/utils/set';
 
 export default <T extends FieldValues = FieldValues>(
   errors: FieldErrors<T>,

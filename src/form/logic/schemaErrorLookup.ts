@@ -1,6 +1,6 @@
 import { FieldError, FieldErrors, FieldValues } from 'react-hook-form';
-import isKey from '../utils/isKey';
-import get from '../utils/get';
+import isKey from '@/utils/isKey';
+import get from '@/utils/get';
 
 export default function schemaErrorLookup<T extends FieldValues = FieldValues>(
   errors: FieldErrors<T>,

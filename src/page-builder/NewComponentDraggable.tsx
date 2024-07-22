@@ -1,7 +1,7 @@
 import { useDraggable } from '@dnd-kit/core';
-import { ComponentType } from './types';
 import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/button';
+import { ComponentType } from '@/ui-builder/types';
 
 export const NewComponentDraggable: React.FunctionComponent<{
   type: ComponentType;

@@ -4,9 +4,9 @@ import { Label } from '@/components/ui/label';
 import { CirclePlus, Trash2 } from 'lucide-react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { v4 as uuidV4 } from 'uuid';
-import { ComponentType } from '../types';
 import { InputFormField } from './form-fields/InputFormField';
 import { BaseComponentProperties } from './types';
+import { ComponentType } from '@/ui-builder/types';
 
 const Tabs: React.FunctionComponent<{ control: any }> = ({ control }) => {
   // const formMethods = useFormContext<Partial<ComponentConfig>>();
