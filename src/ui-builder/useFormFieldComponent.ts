@@ -1,29 +1,35 @@
 import { useController } from 'react-hook-form';
 
-import { useFormComponentContext } from './FormComponentContext';
+import { useCallback, useMemo } from 'react';
 import { ComponentProps, ValidationConfig } from './types';
+import { useUIBuilderContext } from './UIBuilderContext';
 import { useWatchComponentInstance } from './useWatchComponentInstance';
 import {
+  compareFieldNames,
   createMappedFieldNameForComponentInstances,
   createMappedFieldNameForValues,
+  generateValidationMethods,
 } from './utils';
-import { useMemo } from 'react';
-import validationMethods from './validationMethods';
 
 export const useFormFieldComponent = (props: ComponentProps) => {
   const { componentConfig, parentPaths: parentPaths } = props;
 
-  const { validation = {} as ValidationConfig } = componentConfig;
-  const form = useFormComponentContext();
-  const { control, getValues } = form;
+  const { validations = {} as ValidationConfig } = componentConfig;
+  const { formMethods, control, validationMethods } = useUIBuilderContext();
 
-  const { mappedFieldValueName: mappedFieldName } = createMappedFieldNameForValues(
+  if (!formMethods) {
+    throw Error('Must be wrapped by form component');
+  }
+
+  const { mappedFieldName: mappedFieldName } = createMappedFieldNameForValues(
     componentConfig.fieldName!,
     parentPaths
   );
 
-  const { mappedComponentInstanceName: mappedComponentName } =
-    createMappedFieldNameForComponentInstances(componentConfig.fieldName!, parentPaths);
+  const { mappedComponentName: mappedComponentName } = createMappedFieldNameForComponentInstances(
+    componentConfig.fieldName!,
+    parentPaths
+  );
 
   const componentInstance = useWatchComponentInstance({
     componentName: mappedComponentName,
@@ -33,43 +39,51 @@ export const useFormFieldComponent = (props: ComponentProps) => {
     throw new Error(`There is no componentInstance: ${mappedComponentName}`);
   }
 
-  // const validate = useMemo(
-  //   () =>
-  //     Object.entries(validation.methods).reduce((result, [methodName, methodConfig]) => {
-  //       const validator = validationMethods[methodName as keyof typeof validationMethods];
-  //       if (validator) {
-  //         result = {
-  //           ...result,
-  //           [methodName]: (fieldValue: unknown, formValues: Record<string, unknown>) => {
-  //             const dependentFieldValues = validation.dependsOn?.length
-  //               ? getValues(validation.dependsOn)
-  //               : undefined;
-
-  //             return validator({
-  //               fieldValue,
-  //               formValues,
-  //               componentInstance,
-  //               dependentFieldValues,
-  //               ...(typeof methodConfig === 'boolean' ? {} : methodConfig),
-  //             });
-  //           },
-  //         };
-  //       }
-
-  //       return result;
-  //     }, {}),
-  //   [validation.methods, validation.dependsOn, componentInstance, getValues]
-  // );
+  const validate = useMemo(
+    () =>
+      generateValidationMethods({
+        componentInstance,
+        formMethods,
+        parentPaths,
+        validations,
+        validationMethods,
+      }),
+    [componentInstance, formMethods, parentPaths, validationMethods, validations]
+  );
 
   const controller = useController({
-    control,
+    control: formMethods.control,
     name: mappedFieldName,
     rules: {
-      // validate,
+      validate,
     },
   });
 
-  const { field, fieldState } = controller;
+  const { field: originalField, fieldState } = controller;
+
+  const triggerDeps = useCallback(() => {
+    const dependencies = control.validationDependencies.find((d) =>
+      compareFieldNames(d.fieldName, mappedFieldName)
+    );
+    if (dependencies?.deps.length) {
+      formMethods.trigger(dependencies?.deps);
+    }
+  }, [control.validationDependencies, formMethods, mappedFieldName]);
+
+  const field = useMemo(
+    () => ({
+      ...originalField,
+      onBlur: () => {
+        originalField.onBlur();
+        triggerDeps();
+      },
+      onChange: (...event: any[]) => {
+        originalField.onChange(...event);
+        triggerDeps();
+      },
+    }),
+    [originalField, triggerDeps]
+  );
 
   return {
     mappedComponentName,

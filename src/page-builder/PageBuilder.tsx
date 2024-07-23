@@ -119,7 +119,7 @@ export const PageBuilder: React.FunctionComponent<{
   defaultComponentConfigs?: ComponentConfig[];
 }> = ({ defaultComponentConfigs = [] }) => {
   const uiBuilderMethods = useUIBuilder({
-    componentConfigs: defaultComponentConfigs,
+    defaultComponentConfigs: defaultComponentConfigs,
   });
   const [selectedComponentConfig, setSelectedComponentConfig] =
     useState<Partial<ComponentConfig>>();

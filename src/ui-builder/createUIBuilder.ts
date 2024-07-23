@@ -14,6 +14,7 @@ import {
 } from './types';
 import move from '@/utils/move';
 import {
+  compareFieldNames,
   createMappedFieldNameForComponentInstances,
   createMappedFieldNameForValues,
   detectAndGenerateCircularDependencyGraph,
@@ -23,8 +24,8 @@ import {
   isObjectFieldComponent,
   isUIComponent,
   isUIContainerComponent,
-  matchesPatternFieldName,
   removeAt,
+  resolveArrayIndices as resolveArrayIndexes,
 } from './utils';
 import { createFieldArray } from '@/form/createFieldArray';
 
@@ -36,6 +37,10 @@ export type ComponentInstancesNextArgs = {
 
 type ComponentInstancesSubject = Subject<ComponentInstancesNextArgs>;
 
+type ValidationDependency = {
+  fieldName: string;
+  deps: string[];
+};
 export type UIBuilderControl = {
   _setComponentInstance: (
     componentName: string,
@@ -53,6 +58,7 @@ export type UIBuilderControl = {
     instances: ComponentInstancesSubject;
   };
   get componentInstances(): Record<string, ComponentInstance>;
+  get validationDependencies(): ValidationDependency[];
 };
 
 export const createUIBuilder = (args: {
@@ -61,10 +67,7 @@ export const createUIBuilder = (args: {
   const { componentConfigs } = args;
 
   let _componentInstances = {} as Record<string, ComponentInstance>;
-  const _validationDependencies = [] as {
-    fieldName: string;
-    deps: string[];
-  }[];
+  const _validationDependencies = [] as ValidationDependency[];
 
   const _subjects = {
     instances: createSubject<ComponentInstancesNextArgs>(),
@@ -136,10 +139,8 @@ export const createUIBuilder = (args: {
     parentPaths = [] as ParentPath[]
   ) => {
     componentConfigs.forEach((comConfig) => {
-      const { mappedComponentInstanceName } = createMappedFieldNameForComponentInstances(
-        comConfig.componentName,
-        parentPaths
-      );
+      const { mappedComponentName: mappedComponentInstanceName } =
+        createMappedFieldNameForComponentInstances(comConfig.componentName, parentPaths);
       const neededComponentStateProperties: ComponentState = {
         componentName: comConfig.componentName,
         name: comConfig.fieldName,
@@ -186,7 +187,7 @@ export const createUIBuilder = (args: {
               }
               parentPathsToFormComponentPosition.push(path);
             }
-            const { mappedComponentInstanceName: mappedFormComponentInstanceName } =
+            const { mappedComponentName: mappedFormComponentInstanceName } =
               createMappedFieldNameForComponentInstances(
                 formComponent.componentName,
                 parentPathsToFormComponentPosition
@@ -241,7 +242,7 @@ export const createUIBuilder = (args: {
         const formComponent = parentPaths.find((p) => isFormComponent(p.type));
         if (!formComponent)
           throw Error('Form field component must be wrapped inside form component');
-        const { mappedFieldValueName } = createMappedFieldNameForValues(
+        const { mappedFieldName: mappedFieldValueName } = createMappedFieldNameForValues(
           comConfig.fieldName!,
           parentPaths
         );
@@ -249,15 +250,18 @@ export const createUIBuilder = (args: {
         /**
          * Save validation dependencies to use for trigger if dependent fields are changed.
          */
-        if (Object.keys(comConfig.validation ?? {}).length) {
+        if (Object.keys(comConfig.validations ?? {}).length) {
           const saveValidationDependencies = () => {
-            Object.values(comConfig.validation ?? {}).forEach((validationConfig) => {
+            Object.values(comConfig.validations ?? {}).forEach((validationConfig) => {
               if (typeof validationConfig === 'boolean') return;
 
               if (validationConfig.when?.dependsOn?.length) {
                 validationConfig.when?.dependsOn.forEach((dependentFieldName) => {
                   const index = _validationDependencies.findIndex((d) =>
-                    matchesPatternFieldName(dependentFieldName, d.fieldName)
+                    compareFieldNames(
+                      d.fieldName,
+                      resolveArrayIndexes(parentPaths, dependentFieldName)
+                    )
                   );
                   if (index > -1) {
                     _validationDependencies[index].deps = [
@@ -265,7 +269,7 @@ export const createUIBuilder = (args: {
                     ];
                   } else {
                     _validationDependencies.push({
-                      fieldName: dependentFieldName,
+                      fieldName: resolveArrayIndexes(parentPaths, dependentFieldName),
                       deps: [mappedFieldValueName],
                     });
                   }
@@ -274,6 +278,7 @@ export const createUIBuilder = (args: {
             });
           };
           saveValidationDependencies();
+          console.log(_validationDependencies);
         }
 
         const getFormComponentInstances = () => {
@@ -284,7 +289,7 @@ export const createUIBuilder = (args: {
             }
             parentPathsToFormComponentPosition.push(path);
           }
-          const { mappedComponentInstanceName: mappedFormComponentInstanceName } =
+          const { mappedComponentName: mappedFormComponentInstanceName } =
             createMappedFieldNameForComponentInstances(
               formComponent.componentName,
               parentPathsToFormComponentPosition
@@ -623,6 +628,9 @@ export const createUIBuilder = (args: {
     },
     get componentInstances() {
       return _componentInstances;
+    },
+    get validationDependencies() {
+      return _validationDependencies;
     },
   };
 };

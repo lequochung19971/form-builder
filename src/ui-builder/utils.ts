@@ -1,6 +1,14 @@
 import convertToArrayPayload from '@/utils/convertToArrayPayload';
 import { isUndefined } from 'lodash';
-import { ComponentType, ParentPath } from './types';
+import {
+  ComponentInstance,
+  ComponentType,
+  ParentPath,
+  ValidationConfig,
+  WhenCondition,
+} from './types';
+import { UseFormReturn } from 'react-hook-form';
+import { ValidationMethods } from './UIBuilderContext';
 
 export const isFormFieldComponent = (type: ComponentType) => {
   return [
@@ -63,8 +71,8 @@ export const createMappedFieldNameForValues = (
   }, '');
 
   return {
-    mappedParentFieldValueName: parentName,
-    mappedFieldValueName: parentName ? `${parentName}.${current}` : current,
+    mappedParentFieldName: parentName,
+    mappedFieldName: parentName ? `${parentName}.${current}` : current,
   };
 };
 
@@ -88,16 +96,16 @@ export const createMappedFieldNameForComponentInstances = (
 
   if (!parentName) {
     return {
-      mappedParentComponentInstanceName: undefined,
-      mappedComponentInstanceName: current,
+      mappedParentComponentName: undefined,
+      mappedComponentName: current,
     };
   }
 
   const lastPath = parentPaths[parentPaths.length - 1];
 
   return {
-    mappedParentComponentInstanceName: parentName,
-    mappedComponentInstanceName:
+    mappedParentComponentName: parentName,
+    mappedComponentName:
       typeof lastPath.index === 'number'
         ? `${parentName}.__children[${lastPath.index}].${current}`
         : `${parentName}.__children.${current}`,
@@ -228,3 +236,99 @@ export function matchesPatternFieldName(pattern: string, fieldName: string): boo
   // Test the input string against the regex
   return regex.test(fieldName);
 }
+
+export function resolveArrayIndices<
+  T extends string | string[],
+  R = T extends string[] ? string[] : string
+>(parentPaths: ParentPath[], fieldName: T) {
+  if (typeof fieldName === 'string') {
+    return parentPaths.reduce((result, path) => {
+      if (path.fieldName && typeof path.index === 'number') {
+        result = result.replace('[]', `[${path.index}]`);
+      }
+      return result;
+    }, fieldName as string) as R;
+  }
+
+  return fieldName.map((name) => {
+    return parentPaths.reduce((result, path) => {
+      if (path.fieldName && typeof path.index === 'number') {
+        result = result.replace('[]', `[${path.index}]`);
+      }
+      return result;
+    }, name);
+  }) as R;
+}
+
+export function compareFieldNames(firstFieldName: string, secondFieldName: string) {
+  function normalizeFieldName(fieldName: string): string {
+    /**
+     * Convert array indexes in square brackets to dot notation for easy comparison
+     * Example: array[0].firstName => array.0.firstName
+     */
+    return fieldName.replace(/\[(\d+)\]/g, '.$1');
+  }
+
+  // Compare the normalized field names
+  return normalizeFieldName(firstFieldName) === normalizeFieldName(secondFieldName);
+}
+
+// TODO: In coming feature
+export const executeWhenCondition = (
+  deps: any[] | undefined,
+  condition: WhenCondition
+): boolean => {
+  return false;
+};
+
+export const generateValidationMethods = ({
+  formMethods,
+  validations,
+  componentInstance,
+  parentPaths,
+  validationMethods,
+}: {
+  validations: ValidationConfig;
+  formMethods: UseFormReturn;
+  parentPaths: ParentPath[];
+  componentInstance: ComponentInstance;
+  validationMethods: ValidationMethods;
+}) =>
+  Object.entries(validations).reduce((result, [methodName, methodConfig]) => {
+    const validator = validationMethods[methodName as keyof typeof validationMethods];
+    if (validator) {
+      result = {
+        ...result,
+        [methodName]: (fieldValue: unknown, formValues: Record<string, unknown>) => {
+          if (typeof methodConfig === 'boolean') {
+            return validator({
+              fieldValue,
+              formValues,
+              componentInstance,
+            });
+          }
+
+          const dependentFieldValues = methodConfig.when?.dependsOn.length
+            ? formMethods.getValues(resolveArrayIndices(parentPaths, methodConfig.when.dependsOn))
+            : undefined;
+
+          if (
+            methodConfig.when?.conditions &&
+            executeWhenCondition(dependentFieldValues, methodConfig.when.conditions)
+          )
+            return true;
+
+          return validator({
+            fieldValue,
+            formValues,
+            componentInstance,
+            dependentFieldValues,
+            message: methodConfig.message,
+            params: methodConfig.params,
+          });
+        },
+      };
+    }
+
+    return result;
+  }, {});

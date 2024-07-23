@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { createUIBuilder, UIBuilderControl } from './createUIBuilder';
-import { ComponentConfig } from './types';
+import { ComponentConfig, ValidationMethod } from './types';
 
 export type UseUIBuilderReturn = {
   control: UIBuilderControl;
@@ -10,11 +10,13 @@ export type UseUIBuilderReturn = {
 };
 
 export const useUIBuilder = (props: {
-  componentConfigs: ComponentConfig[];
+  defaultComponentConfigs: ComponentConfig[];
 }): UseUIBuilderReturn => {
   const uiBuilderControl = useRef<UIBuilderControl>();
   if (!uiBuilderControl.current) {
-    uiBuilderControl.current = createUIBuilder(props);
+    uiBuilderControl.current = createUIBuilder({
+      componentConfigs: props.defaultComponentConfigs,
+    });
   }
 
   return {

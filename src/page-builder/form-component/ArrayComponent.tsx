@@ -54,7 +54,7 @@ export const ArrayComponent: React.FunctionComponent<ArrayComponentProps> = (pro
         <React.Fragment key={field.id}>
           {componentConfig.components?.map((com, index) => (
             <ComponentItem
-              key={`component-${field.id}-${com.id}`}
+              key={com.id}
               componentConfig={com}
               index={index}
               parentId={componentConfig.id}
@@ -73,40 +73,42 @@ export const ArrayComponent: React.FunctionComponent<ArrayComponentProps> = (pro
           </div>
         </React.Fragment>
       ))}
-      <Button
-        onClick={() =>
-          componentInstance.__control.append({
-            firstName: `Append-${Math.floor(Math.random() * 1000)}`,
-          })
-        }>
-        Append
-      </Button>
-      <Button
-        onClick={() =>
-          componentInstance.__control.prepend({
-            firstName: `Prepend-${Math.floor(Math.random() * 1000)}`,
-          })
-        }>
-        Prepend
-      </Button>
-      <Button onClick={() => componentInstance.__control.swap(1, 3)}>Swap</Button>
-      <Button onClick={() => componentInstance.__control.move(1, 3)}>Move</Button>
-      <Button
-        onClick={() =>
-          componentInstance.__control.insert(1, {
-            firstName: `insert-${Math.floor(Math.random() * 1000)}`,
-          })
-        }>
-        Insert
-      </Button>
-      <Button
-        onClick={() =>
-          componentInstance.__control.update(1, {
-            firstName: `update-${Math.floor(Math.random() * 1000)}`,
-          })
-        }>
-        Update
-      </Button>
+      <div className="flex flex-row space-x-1">
+        <Button
+          onClick={() =>
+            componentInstance.__control.append({
+              firstName: `Append-${Math.floor(Math.random() * 1000)}`,
+            })
+          }>
+          Append
+        </Button>
+        <Button
+          onClick={() =>
+            componentInstance.__control.prepend({
+              firstName: `Prepend-${Math.floor(Math.random() * 1000)}`,
+            })
+          }>
+          Prepend
+        </Button>
+        <Button onClick={() => componentInstance.__control.swap(1, 3)}>Swap</Button>
+        <Button onClick={() => componentInstance.__control.move(1, 3)}>Move</Button>
+        <Button
+          onClick={() =>
+            componentInstance.__control.insert(1, {
+              firstName: `insert-${Math.floor(Math.random() * 1000)}`,
+            })
+          }>
+          Insert
+        </Button>
+        <Button
+          onClick={() =>
+            componentInstance.__control.update(1, {
+              firstName: `update-${Math.floor(Math.random() * 1000)}`,
+            })
+          }>
+          Update
+        </Button>
+      </div>
     </div>
   );
 };

@@ -84,6 +84,8 @@ export type ValidationMethod<
   componentInstance: TInstance;
   dependentFieldValues?: any[];
 }) => ValidateResult;
+export type ValidationMethods = Record<`custom.${string}` | `library.${string}`, ValidationMethod>;
+export type CustomValidationMethods = Record<`custom.${string}`, ValidationMethod>;
 
 type ActionArgs<TEvent> = {
   event: TEvent;
@@ -134,6 +136,8 @@ export type ParentPath = {
   parentPaths?: ParentPath[];
 };
 
+// TODO: In coming feature
+export type WhenCondition = any;
 type ValidationConfigMethod = {
   params?: unknown;
   message?: string;
@@ -148,9 +152,12 @@ type ValidationConfigMethod = {
      * `['array[].object.secondaryArray[].firstName', 'array[].firstName', ...]`
      */
     dependsOn: string[];
+    conditions?: WhenCondition;
   };
 };
-export type ValidationConfig = Record<string, ValidationConfigMethod | boolean>;
+
+export type ValidationName = `library.${string}` | `custom.${string}`;
+export type ValidationConfig = Record<ValidationName, ValidationConfigMethod | boolean>;
 
 export type WatchConfig = string[] | string;
 
@@ -190,7 +197,7 @@ export type FieldComponentConfig = BaseComponentConfig & {
 export type ComponentConfig = BaseComponentConfig & {
   components?: ComponentConfig[];
   visibility?: VisibilityConfig;
-  validation?: ValidationConfig;
+  validations?: ValidationConfig;
   defaultValue?: any;
   // actions?: {
   //   click?: ClickAction;

@@ -23,10 +23,11 @@ const components: ComponentConfig[] = [
             componentName: 'firstName',
             type: ComponentType.INPUT_FIELD,
             fieldName: 'firstName',
-            validation: {
-              required: {
+            validations: {
+              'library.required': {
                 when: {
                   dependsOn: ['array[].lastName'],
+                  conditions: {},
                 },
               },
             },
@@ -43,7 +44,7 @@ const components: ComponentConfig[] = [
             type: ComponentType.INPUT_FIELD,
             fieldName: 'fullName',
             // validation: {
-            //   required: {
+            //   'required': {
             //     when: {
             //       dependsOn: ['lastName', 'firstName'],
             //     },
@@ -57,10 +58,11 @@ const components: ComponentConfig[] = [
         componentName: 'firstName',
         type: ComponentType.INPUT_FIELD,
         fieldName: 'firstName',
-        validation: {
-          required: {
+        validations: {
+          'library.required': {
             when: {
               dependsOn: ['lastName'],
+              conditions: {},
             },
           },
         },
@@ -70,19 +72,27 @@ const components: ComponentConfig[] = [
         componentName: 'lastName',
         type: ComponentType.INPUT_FIELD,
         fieldName: 'lastName',
+        validations: {
+          'library.required': {
+            when: {
+              dependsOn: ['firstName'],
+              conditions: {},
+            },
+          },
+        },
       },
       {
         id: 'inputField-dcfdadc8-8723-4f01-a49d-50025081e2d8',
         componentName: 'fullName',
         type: ComponentType.INPUT_FIELD,
         fieldName: 'fullName',
-        validation: {
-          required: {
-            when: {
-              dependsOn: ['lastName', 'firstName'],
-            },
-          },
-        },
+        // validations: {
+        //   required: {
+        //     when: {
+        //       dependsOn: ['lastName', 'firstName'],
+        //     },
+        //   },
+        // },
       },
     ],
   },

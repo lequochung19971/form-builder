@@ -5,10 +5,8 @@ import { createMappedFieldNameForComponentInstances } from './utils';
 export const useUIComponent = (props: ComponentProps) => {
   const { componentConfig, parentPaths: parentPaths } = props;
 
-  const { mappedComponentInstanceName } = createMappedFieldNameForComponentInstances(
-    componentConfig.componentName,
-    parentPaths
-  );
+  const { mappedComponentName: mappedComponentInstanceName } =
+    createMappedFieldNameForComponentInstances(componentConfig.componentName, parentPaths);
 
   const componentInstance = useWatchComponentInstance({
     componentName: mappedComponentInstanceName,
