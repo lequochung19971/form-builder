@@ -1,10 +1,10 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ComponentType } from '@/ui-builder/types';
 import React from 'react';
-import { InputComponentProperties } from './InputComponentProperties';
+import { ArrayComponentProperties } from './ArrayComponentProperties';
+import { BasicComponentProperties } from './BasicComponentProperties';
 import { TabsComponentProperties } from './TabsComponentProperties';
 import { BaseComponentProperties } from './types';
-import { ArrayComponentProperties } from './ArrayComponentProperties';
-import { ComponentType } from '@/ui-builder/types';
 
 type ComponentPropertiesDialogProps = BaseComponentProperties & {
   open?: boolean;
@@ -20,7 +20,8 @@ export const ComponentPropertiesDialog: React.FunctionComponent<ComponentPropert
     switch (componentConfig?.type) {
       case ComponentType.INPUT:
       case ComponentType.FORM:
-        return <InputComponentProperties componentConfig={componentConfig} onSubmit={onSubmit} />;
+      case ComponentType.BUTTON:
+        return <BasicComponentProperties componentConfig={componentConfig} onSubmit={onSubmit} />;
 
       case ComponentType.TABS:
         return <TabsComponentProperties componentConfig={componentConfig} onSubmit={onSubmit} />;

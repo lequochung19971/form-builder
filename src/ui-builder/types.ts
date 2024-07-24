@@ -72,30 +72,6 @@ export type VisibilityMethodArgs = {
   };
 };
 
-export type ValidationMethod<
-  TFieldValue = any,
-  TFormValues extends FieldValues = FieldValues,
-  TInstance extends ComponentInstance = ComponentInstance
-> = (args: {
-  fieldValue: TFieldValue;
-  formValues: TFormValues;
-  message?: string;
-  params?: unknown;
-  componentInstance: TInstance;
-  dependentFieldValues?: any[];
-}) => ValidateResult;
-export type ValidationMethods = Record<`custom.${string}` | `library.${string}`, ValidationMethod>;
-export type CustomValidationMethods = Record<`custom.${string}`, ValidationMethod>;
-
-type ActionArgs<TEvent> = {
-  event: TEvent;
-  control: ComponentControl;
-};
-
-type ClickAction = (args: ActionArgs<React.MouseEvent<HTMLElement>>) => void;
-type ChangeAction = (args: ActionArgs<React.ChangeEvent<HTMLElement>>) => void;
-type BlurAction = (args: ActionArgs<React.FocusEvent<HTMLElement>>) => void;
-
 export enum ComponentType {
   /**
    * UI components
@@ -109,6 +85,7 @@ export enum ComponentType {
   TABS = 'tabs',
   TAB = 'tab',
   COLUMN = 'column',
+  TEXT = 'text',
 
   /**
    * Data components
@@ -136,6 +113,7 @@ export type ParentPath = {
   parentPaths?: ParentPath[];
 };
 
+// VALIDATION
 // TODO: In coming feature
 export type WhenCondition = any;
 type ValidationConfigMethod = {
@@ -156,14 +134,53 @@ type ValidationConfigMethod = {
   };
 };
 
-export type ValidationName = `library.${string}` | `custom.${string}`;
-export type ValidationConfig = Record<ValidationName, ValidationConfigMethod | boolean>;
+export type ValidationMethod<
+  TFieldValue = any,
+  TFormValues extends FieldValues = FieldValues,
+  TInstance extends ComponentInstance = ComponentInstance
+> = (args: {
+  fieldValue: TFieldValue;
+  formValues: TFormValues;
+  message?: string;
+  params?: unknown;
+  componentInstance: TInstance;
+  dependentFieldValues?: any[];
+}) => ValidateResult;
+export type ValidationMethods = Record<string, ValidationMethod>;
+export type CustomValidationMethodName = `custom.${string}`;
+export type CustomValidationMethods = Record<CustomValidationMethodName, ValidationMethod>;
+export type ValidationConfig = Record<string, ValidationConfigMethod | boolean>;
 
 export type WatchConfig = string[] | string;
-
 export type Watch = {
   values?: WatchConfig;
   states?: WatchConfig;
+};
+
+// ACTIONS
+export type ActionMethod<
+  TEvent extends React.SyntheticEvent = React.SyntheticEvent,
+  TInstance extends ComponentInstance = ComponentInstance,
+  TConfig extends ActionConfigs = ActionConfigs
+> = (args: { event: TEvent; componentInstance: TInstance; config?: TConfig }) => void;
+
+type BuiltInActionConfigs = {
+  showComponent: {
+    targetComponentName: string;
+  };
+};
+
+export type ActionMethods = Record<string, ActionMethod>;
+export type CustomMethodName = `custom.${string}`;
+export type CustomActionMethods = Record<CustomMethodName, ActionMethod>;
+type CustomActionConfigs = Record<CustomMethodName, any>;
+export type ActionConfigs = (BuiltInActionConfigs & CustomActionConfigs) | boolean;
+export type ComponentActions = {
+  click?: ActionConfigs;
+  change?: ActionConfigs;
+  blur?: ActionConfigs;
+  focus?: ActionConfigs;
+  // Will expand based on demands
 };
 
 export type VisibilityConfig = {
@@ -199,11 +216,7 @@ export type ComponentConfig = BaseComponentConfig & {
   visibility?: VisibilityConfig;
   validations?: ValidationConfig;
   defaultValue?: any;
-  // actions?: {
-  //   click?: ClickAction;
-  //   change?: ChangeAction;
-  //   blur?: BlurAction;
-  // };
+  actions?: ComponentActions;
   // css?: Interpolation<Theme>;
 } & Partial<FieldComponentConfig>;
 

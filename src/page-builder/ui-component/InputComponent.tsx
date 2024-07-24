@@ -11,7 +11,7 @@ export const InputComponent: React.FunctionComponent<InputComponentProps> = (pro
   const { componentConfig, parentPaths: parentPaths, index, parentId } = props;
   const { isBuildingMode } = usePageBuilderContext();
 
-  useUIComponent({
+  const { actions } = useUIComponent({
     componentConfig,
     parentPaths: parentPaths,
   });
@@ -19,7 +19,14 @@ export const InputComponent: React.FunctionComponent<InputComponentProps> = (pro
   const input = (
     <div className="flex flex-col w-full space-y-2 z-10">
       <Label>{componentConfig.componentName}</Label>
-      <Input data-no-dnd placeholder={`Enter a ${componentConfig.componentName}`} />
+      <Input
+        data-no-dnd
+        placeholder={`Enter a ${componentConfig.componentName}`}
+        onClick={actions.onClick}
+        onChange={actions.onChange}
+        onBlur={actions.onBlur}
+        onFocus={actions.onFocus}
+      />
     </div>
   );
 

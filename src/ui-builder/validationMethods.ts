@@ -11,8 +11,8 @@ export const required: ValidationMethod = ({
   return fieldValue ? message : false;
 };
 
-const validationMethods = {
-  'library.required': required,
+const builtInValidationMethods = {
+  required,
 } as const;
 
-export default validationMethods;
+export default builtInValidationMethods;

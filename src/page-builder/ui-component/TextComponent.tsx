@@ -1,15 +1,14 @@
-import { Button } from '@/components/ui/button';
 import { useUIComponent } from '@/ui-builder/useUIComponent';
+import { cn } from '@/utils/uiUtils';
 import { BaseComponentProps } from '../types';
-import { usePageBuilderContext } from '../PageBuilder';
 import { DragDropWrapper } from '../dnd/DragDropWrapper';
-export type ButtonComponentProps = BaseComponentProps;
-const ButtonComponent: React.FunctionComponent<ButtonComponentProps> = (props) => {
+import { usePageBuilderContext } from '../PageBuilder';
+export type TextComponentProps = BaseComponentProps;
+const TextComponent: React.FunctionComponent<TextComponentProps> = (props) => {
   const { componentConfig, parentPaths: parentPaths, index, parentId } = props;
-
   const { isBuildingMode } = usePageBuilderContext();
 
-  const { actions } = useUIComponent({
+  useUIComponent({
     componentConfig,
     parentPaths: parentPaths,
   });
@@ -21,17 +20,17 @@ const ButtonComponent: React.FunctionComponent<ButtonComponentProps> = (props) =
         id={componentConfig.id}
         data={componentConfig}
         parentId={parentId}>
-        <Button data-no-dnd onClick={actions.onClick}>
+        <h1 className={cn('scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl')}>
           {componentConfig.label}
-        </Button>
+        </h1>
       </DragDropWrapper>
     );
   }
 
   return (
-    <Button data-no-dnd onClick={actions.onClick}>
+    <h1 className={cn('scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl')}>
       {componentConfig.label}
-    </Button>
+    </h1>
   );
 };
-export default ButtonComponent;
+export default TextComponent;

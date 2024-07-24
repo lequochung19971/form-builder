@@ -1,12 +1,18 @@
+import { useMemo } from 'react';
 import { ComponentProps } from './types';
+import { useUIBuilderContext } from './UIBuilderContext';
 import { useWatchComponentInstance } from './useWatchComponentInstance';
-import { createMappedFieldNameForComponentInstances } from './utils';
+import { createMappedFieldNameForComponentInstances, generateActions } from './utils';
 
 export const useUIComponent = (props: ComponentProps) => {
   const { componentConfig, parentPaths: parentPaths } = props;
 
+  const { actions = {} } = componentConfig;
+
   const { mappedComponentName: mappedComponentInstanceName } =
     createMappedFieldNameForComponentInstances(componentConfig.componentName, parentPaths);
+
+  const { actionMethods } = useUIBuilderContext();
 
   const componentInstance = useWatchComponentInstance({
     componentName: mappedComponentInstanceName,
@@ -16,9 +22,20 @@ export const useUIComponent = (props: ComponentProps) => {
     throw new Error(`There is no componentInstance: ${mappedComponentInstanceName}`);
   }
 
+  const componentActionMethods = useMemo(
+    () =>
+      generateActions({
+        actionMethods,
+        actionsConfigs: actions,
+        componentInstance,
+      }),
+    [actionMethods, actions, componentInstance]
+  );
+
   return {
     mappedComponentName: mappedComponentInstanceName,
     componentInstance,
     parentPaths,
+    actions: componentActionMethods,
   };
 };

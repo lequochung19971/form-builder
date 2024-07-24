@@ -1,14 +1,18 @@
 import convertToArrayPayload from '@/utils/convertToArrayPayload';
 import { isUndefined } from 'lodash';
 import {
+  ActionConfigs,
+  ActionMethods,
+  ComponentActions,
   ComponentInstance,
   ComponentType,
   ParentPath,
   ValidationConfig,
+  ValidationMethods,
   WhenCondition,
 } from './types';
 import { UseFormReturn } from 'react-hook-form';
-import { ValidationMethods } from './UIBuilderContext';
+import { SyntheticEvent } from 'react';
 
 export const isFormFieldComponent = (type: ComponentType) => {
   return [
@@ -27,6 +31,7 @@ export const isUIComponent = (type: ComponentType) => {
     ComponentType.BUTTON,
     ComponentType.TABS,
     ComponentType.TAB,
+    ComponentType.TEXT,
   ].includes(type);
 };
 
@@ -332,3 +337,34 @@ export const generateValidationMethods = ({
 
     return result;
   }, {});
+
+export const generateActions = ({
+  actionMethods,
+  actionsConfigs,
+  componentInstance,
+}: {
+  actionsConfigs: ComponentActions;
+  componentInstance: ComponentInstance;
+  actionMethods: ActionMethods;
+}) => {
+  const executeActions = (event: SyntheticEvent, actionConfigs: ActionConfigs) => {
+    Object.entries(actionConfigs).forEach(([methodName, methodConfig]) => {
+      actionMethods[methodName]?.({
+        event,
+        componentInstance,
+        config: methodConfig,
+      });
+    });
+  };
+
+  return {
+    onClick: (event: React.SyntheticEvent) =>
+      actionsConfigs.click && executeActions(event, actionsConfigs.click),
+    onChange: (event: React.SyntheticEvent) =>
+      actionsConfigs.change && executeActions(event, actionsConfigs.change),
+    onBlur: (event: React.SyntheticEvent) =>
+      actionsConfigs.blur && executeActions(event, actionsConfigs.blur),
+    onFocus: (event: React.SyntheticEvent) =>
+      actionsConfigs.focus && executeActions(event, actionsConfigs.focus),
+  };
+};

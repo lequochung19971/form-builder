@@ -8,14 +8,15 @@ import {
   compareFieldNames,
   createMappedFieldNameForComponentInstances,
   createMappedFieldNameForValues,
+  generateActions,
   generateValidationMethods,
 } from './utils';
 
 export const useFormFieldComponent = (props: ComponentProps) => {
   const { componentConfig, parentPaths: parentPaths } = props;
 
-  const { validations = {} as ValidationConfig } = componentConfig;
-  const { formMethods, control, validationMethods } = useUIBuilderContext();
+  const { validations = {} as ValidationConfig, actions = {} } = componentConfig;
+  const { formMethods, control, validationMethods, actionMethods } = useUIBuilderContext();
 
   if (!formMethods) {
     throw Error('Must be wrapped by form component');
@@ -85,6 +86,16 @@ export const useFormFieldComponent = (props: ComponentProps) => {
     [originalField, triggerDeps]
   );
 
+  const componentActionMethods = useMemo(
+    () =>
+      generateActions({
+        actionMethods,
+        actionsConfigs: actions,
+        componentInstance,
+      }),
+    [actionMethods, actions, componentInstance]
+  );
+
   return {
     mappedComponentName,
     mappedFieldName,
@@ -92,5 +103,6 @@ export const useFormFieldComponent = (props: ComponentProps) => {
     fieldState,
     componentInstance,
     parentPaths,
+    actions: componentActionMethods,
   };
 };

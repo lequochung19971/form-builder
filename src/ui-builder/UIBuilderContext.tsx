@@ -1,13 +1,20 @@
 import { createContext, PropsWithChildren, useContext, useMemo, useRef } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { FormComponentContext } from './FormComponentContext';
-import { CustomValidationMethods, ValidationMethods } from './types';
+import {
+  ActionMethods,
+  CustomActionMethods,
+  CustomValidationMethods,
+  ValidationMethods,
+} from './types';
 import { UseUIBuilderReturn } from './useUIBuilder';
-import validationMethods from './validationMethods';
+import builtInValidationMethods from './validationMethods';
+import builtInActionMethods from './actionMethods';
 
 type UIBuilderContext = UseUIBuilderReturn & {
   formMethods?: UseFormReturn;
   validationMethods: ValidationMethods;
+  actionMethods: ActionMethods;
 };
 
 export const UIBuilderContext = createContext<UIBuilderContext | undefined>(undefined);
@@ -28,19 +35,39 @@ export const useUIBuilderContext = () => {
   );
 };
 
-type UIBuilderProviderProps = Omit<UIBuilderContext, 'validationMethods'> &
+type UIBuilderProviderProps = Omit<UIBuilderContext, 'validationMethods' | 'actionMethods'> &
   PropsWithChildren & {
+    /**
+     * A custom validation method must be include `custom` prefix
+     * Example:
+     * - `custom.testValidator`
+     * - `custom.users.uniqueUserName`
+     */
     customValidationMethods?: CustomValidationMethods;
+
+    /**
+     * A custom validation method must be include `custom` prefix
+     * Example:
+     * - `custom.test`
+     * - `custom.users.showUser`
+     */
+    customActionMethods?: CustomActionMethods;
   };
 
 export const UIBuilderProvider = ({
   children,
   customValidationMethods = {},
+  customActionMethods = {},
   ...props
 }: UIBuilderProviderProps) => {
   const validationMethodsRef = useRef({
-    ...validationMethods,
+    ...builtInValidationMethods,
     ...customValidationMethods,
+  });
+
+  const actionMethodsRef = useRef({
+    ...builtInActionMethods,
+    ...customActionMethods,
   });
 
   return (
@@ -49,6 +76,7 @@ export const UIBuilderProvider = ({
         () => ({
           ...props,
           validationMethods: validationMethodsRef.current,
+          actionMethods: actionMethodsRef.current,
         }),
         [props]
       )}>

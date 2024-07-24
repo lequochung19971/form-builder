@@ -325,6 +325,8 @@ export const PageBuilder: React.FunctionComponent<{
             name={ComponentType.ARRAY_CONTAINER}
           />
           <NewComponentDraggable type={ComponentType.FORM} name={ComponentType.FORM} />
+          <NewComponentDraggable type={ComponentType.BUTTON} name={ComponentType.BUTTON} />
+          <NewComponentDraggable type={ComponentType.TEXT} name={ComponentType.TEXT} />
         </div>
         {!componentConfigs.length ? (
           <DropHerePlaceholder className="h-[200px]" />

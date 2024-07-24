@@ -7,6 +7,12 @@ import { Input } from './components/ui/input';
 
 const components: ComponentConfig[] = [
   {
+    id: 'text-dcfdadc8-8723-4f01-a49d-50025081e2d8',
+    componentName: 'header1',
+    type: ComponentType.TEXT,
+    label: 'Demo UI Builder',
+  },
+  {
     id: 'form-6a33ba6f-9393-4190-a1d9-8fa7f04729a0',
     componentName: 'form',
     type: ComponentType.FORM,
@@ -24,7 +30,7 @@ const components: ComponentConfig[] = [
             type: ComponentType.INPUT_FIELD,
             fieldName: 'firstName',
             validations: {
-              'library.required': {
+              required: {
                 when: {
                   dependsOn: ['array[].lastName'],
                   conditions: {},
@@ -59,7 +65,7 @@ const components: ComponentConfig[] = [
         type: ComponentType.INPUT_FIELD,
         fieldName: 'firstName',
         validations: {
-          'library.required': {
+          required: {
             when: {
               dependsOn: ['lastName'],
               conditions: {},
@@ -73,7 +79,7 @@ const components: ComponentConfig[] = [
         type: ComponentType.INPUT_FIELD,
         fieldName: 'lastName',
         validations: {
-          'library.required': {
+          required: {
             when: {
               dependsOn: ['firstName'],
               conditions: {},
@@ -93,6 +99,20 @@ const components: ComponentConfig[] = [
         //     },
         //   },
         // },
+      },
+      {
+        id: 'button-dcfdadc8-8723-4f01-a49d-50025081e2d8',
+        componentName: 'button',
+        type: ComponentType.BUTTON,
+        fieldName: 'fullName',
+        label: 'Click Here',
+        actions: {
+          click: {
+            showComponent: {
+              targetComponentName: 'array',
+            },
+          },
+        },
       },
     ],
   },

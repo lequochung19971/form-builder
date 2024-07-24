@@ -8,6 +8,7 @@ import { InputFieldComponent } from './form-component/InputFieldComponent';
 import { FormComponent } from './form-component/FormComponent';
 import { ComponentConfig, ComponentType, ParentPath } from '@/ui-builder/types';
 import { ObjectComponent } from './form-component/ObjectComponent';
+import TextComponent from './ui-component/TextComponent';
 
 export const configuredComponents = {
   [ComponentType.INPUT]: InputComponent,
@@ -18,6 +19,7 @@ export const configuredComponents = {
   [ComponentType.INPUT_FIELD]: InputFieldComponent,
   [ComponentType.FORM]: FormComponent,
   [ComponentType.OBJECT_CONTAINER]: ObjectComponent,
+  [ComponentType.TEXT]: TextComponent,
 };
 
 export type AllComponentProps = Partial<
@@ -33,10 +35,20 @@ export type AllComponentProps = Partial<
 export const getDefaultComponentConfig = (type: ComponentType): ComponentConfig | undefined => {
   switch (type) {
     case ComponentType.INPUT:
+    case ComponentType.TEXT:
+    case ComponentType.BUTTON: {
+      return {
+        id: `${type}-${uuidV4()}`,
+        componentName: '',
+        type,
+      };
+    }
+
     case ComponentType.INPUT_FIELD: {
       return {
         id: `${type}-${uuidV4()}`,
         componentName: '',
+        fieldName: '',
         type,
       };
     }

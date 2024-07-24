@@ -1,14 +1,18 @@
 import getProxyFormState from '@/form/logic/getProxyFormState';
 import shouldRenderFormState from '@/form/logic/shouldRenderFormState';
 import { useFormSubscribe } from '@/form/useFormSubscribe';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { FieldValues, FormState, InternalFieldName, UseFormReturn } from 'react-hook-form';
 import { ComponentProps } from './types';
 import { useWatchComponentInstance } from './useWatchComponentInstance';
-import { createMappedFieldNameForComponentInstances } from './utils';
+import { createMappedFieldNameForComponentInstances, generateActions } from './utils';
+import { useUIBuilderContext } from './UIBuilderContext';
 
 export const useFormComponent = (props: ComponentProps) => {
   const { componentConfig, parentPaths: parentPaths } = props;
+
+  const { actions = {} } = componentConfig;
+  const { actionMethods } = useUIBuilderContext();
 
   const { mappedComponentName: mappedComponentInstanceName } =
     createMappedFieldNameForComponentInstances(componentConfig.componentName, parentPaths);
@@ -95,11 +99,22 @@ export const useFormComponent = (props: ComponentProps) => {
 
   _formControl.current.formState = getProxyFormState(formState, formControl);
 
+  const componentActionMethods = useMemo(
+    () =>
+      generateActions({
+        actionMethods,
+        actionsConfigs: actions,
+        componentInstance,
+      }),
+    [actionMethods, actions, componentInstance]
+  );
+
   return {
     mappedComponentName: mappedComponentInstanceName,
     componentInstance,
     parentPaths,
     formState,
     formControl: _formControl.current,
+    actions: componentActionMethods,
   };
 };
