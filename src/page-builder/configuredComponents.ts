@@ -40,6 +40,7 @@ export const getDefaultComponentConfig = (type: ComponentType): ComponentConfig 
       return {
         id: `${type}-${uuidV4()}`,
         componentName: '',
+        group: 'ui',
         type,
       };
     }
@@ -49,6 +50,7 @@ export const getDefaultComponentConfig = (type: ComponentType): ComponentConfig 
         id: `${type}-${uuidV4()}`,
         componentName: '',
         fieldName: '',
+        group: 'form-field',
         type,
       };
     }
@@ -58,11 +60,13 @@ export const getDefaultComponentConfig = (type: ComponentType): ComponentConfig 
         id: `${type}-${uuidV4()}`,
         componentName: '',
         type,
+        group: 'ui',
         components: [
           {
             id: uuidV4(),
             componentName: 'tab',
             type: ComponentType.TAB,
+            group: 'ui',
             components: [],
           },
         ],
@@ -74,6 +78,7 @@ export const getDefaultComponentConfig = (type: ComponentType): ComponentConfig 
         id: `${type}-${uuidV4()}`,
         componentName: '',
         fieldName: '',
+        group: 'form-array-field',
         type,
       };
     }
@@ -81,6 +86,7 @@ export const getDefaultComponentConfig = (type: ComponentType): ComponentConfig 
     case ComponentType.FORM: {
       return {
         id: `${type}-${uuidV4()}`,
+        group: 'form',
         componentName: '',
         type,
       };

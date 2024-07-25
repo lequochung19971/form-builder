@@ -5,7 +5,6 @@ import {
   ActionMethods,
   ComponentActions,
   ComponentInstance,
-  ComponentType,
   ParentPath,
   ValidationConfig,
   ValidationMethods,
@@ -14,52 +13,7 @@ import {
 import { UseFormReturn } from 'react-hook-form';
 import { SyntheticEvent } from 'react';
 
-export const isFormFieldComponent = (type: ComponentType) => {
-  return [
-    ComponentType.INPUT_FIELD,
-    ComponentType.ARRAY_CONTAINER,
-    ComponentType.OBJECT_CONTAINER,
-    ComponentType.DATA_TABLE,
-  ].includes(type);
-};
-
-export const isUIComponent = (type: ComponentType) => {
-  return [
-    ComponentType.INPUT,
-    ComponentType.CONTAINER,
-    ComponentType.FORM,
-    ComponentType.BUTTON,
-    ComponentType.TABS,
-    ComponentType.TAB,
-    ComponentType.TEXT,
-  ].includes(type);
-};
-
-export const isUIContainerComponent = (type: ComponentType) => {
-  return [
-    ComponentType.CONTAINER,
-    ComponentType.FORM,
-    ComponentType.TABS,
-    ComponentType.TAB,
-  ].includes(type);
-};
-
-export const isArrayFieldComponent = (type: ComponentType) => {
-  return [ComponentType.ARRAY_CONTAINER, ComponentType.DATA_TABLE].includes(type);
-};
-
-export const isObjectFieldComponent = (type: ComponentType) => {
-  return [ComponentType.OBJECT_CONTAINER].includes(type);
-};
-
-export const isFormComponent = (type: ComponentType) => {
-  return [ComponentType.FORM].includes(type);
-};
-
-export const createMappedFieldNameForValues = (
-  current: string,
-  parentPaths = [] as ParentPath[]
-) => {
+export const createMappedFieldName = (current: string, parentPaths = [] as ParentPath[]) => {
   const parentName = parentPaths.reduce((result, path) => {
     if (!path.fieldName) return result;
 
@@ -81,10 +35,7 @@ export const createMappedFieldNameForValues = (
   };
 };
 
-export const createMappedFieldNameForComponentInstances = (
-  current: string,
-  parentPaths = [] as ParentPath[]
-) => {
+export const createMappedComponentName = (current: string, parentPaths = [] as ParentPath[]) => {
   const parentName = parentPaths.reduce((result, path, index) => {
     result = result ? `${result}.${path.componentName}` : path.componentName;
 

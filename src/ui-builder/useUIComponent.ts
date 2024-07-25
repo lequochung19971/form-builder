@@ -2,15 +2,17 @@ import { useMemo } from 'react';
 import { ComponentProps } from './types';
 import { useUIBuilderContext } from './UIBuilderContext';
 import { useWatchComponentInstance } from './useWatchComponentInstance';
-import { createMappedFieldNameForComponentInstances, generateActions } from './utils';
+import { createMappedComponentName, generateActions } from './utils';
 
 export const useUIComponent = (props: ComponentProps) => {
   const { componentConfig, parentPaths: parentPaths } = props;
 
   const { actions = {} } = componentConfig;
 
-  const { mappedComponentName: mappedComponentInstanceName } =
-    createMappedFieldNameForComponentInstances(componentConfig.componentName, parentPaths);
+  const { mappedComponentName: mappedComponentInstanceName } = createMappedComponentName(
+    componentConfig.componentName,
+    parentPaths
+  );
 
   const { actionMethods } = useUIBuilderContext();
 

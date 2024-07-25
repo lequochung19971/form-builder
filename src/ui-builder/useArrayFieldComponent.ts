@@ -6,8 +6,8 @@ import { ArrayFieldComponentInstance, ComponentProps } from './types';
 import { useUIBuilderContext } from './UIBuilderContext';
 import { useWatchComponentInstance } from './useWatchComponentInstance';
 import {
-  createMappedFieldNameForComponentInstances,
-  createMappedFieldNameForValues,
+  createMappedComponentName,
+  createMappedFieldName,
   generateValidationMethods,
 } from './utils';
 
@@ -24,13 +24,15 @@ export const useArrayFieldComponent = (props: ComponentProps) => {
 
   const { control } = formMethods;
 
-  const { mappedFieldName: mappedFieldValueName } = createMappedFieldNameForValues(
+  const { mappedFieldName: mappedFieldValueName } = createMappedFieldName(
     componentConfig.fieldName!,
     parentPaths
   );
 
-  const { mappedComponentName: mappedComponentInstanceName } =
-    createMappedFieldNameForComponentInstances(componentConfig.componentName, parentPaths);
+  const { mappedComponentName: mappedComponentInstanceName } = createMappedComponentName(
+    componentConfig.componentName,
+    parentPaths
+  );
 
   const componentInstance = useWatchComponentInstance({
     componentName: mappedComponentInstanceName,

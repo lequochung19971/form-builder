@@ -36,7 +36,7 @@ export const ArrayComponent: React.FunctionComponent<ArrayComponentProps> = (pro
               parentId={componentConfig.id}
               parentPaths={parentPaths?.concat({
                 id: componentConfig.id,
-                type: componentConfig.type,
+                group: componentConfig.group,
                 fieldName: componentConfig.fieldName,
                 componentName: componentConfig.componentName,
                 index: 0,
@@ -60,7 +60,7 @@ export const ArrayComponent: React.FunctionComponent<ArrayComponentProps> = (pro
               parentId={componentConfig.id}
               parentPaths={parentPaths?.concat({
                 id: componentConfig.id,
-                type: componentConfig.type,
+                group: componentConfig.group,
                 fieldName: componentConfig.fieldName,
                 componentName: componentConfig.componentName,
                 index: fieldIndex,

@@ -15,15 +15,9 @@ import {
 import move from '@/utils/move';
 import {
   compareFieldNames,
-  createMappedFieldNameForComponentInstances,
-  createMappedFieldNameForValues,
+  createMappedComponentName,
+  createMappedFieldName,
   detectAndGenerateCircularDependencyGraph,
-  isArrayFieldComponent,
-  isFormComponent,
-  isFormFieldComponent,
-  isObjectFieldComponent,
-  isUIComponent,
-  isUIContainerComponent,
   removeAt,
   resolveArrayIndices as resolveArrayIndexes,
 } from './utils';
@@ -139,12 +133,12 @@ export const createUIBuilder = (args: {
     parentPaths = [] as ParentPath[]
   ) => {
     componentConfigs.forEach((comConfig) => {
-      const { mappedComponentName: mappedComponentInstanceName } =
-        createMappedFieldNameForComponentInstances(comConfig.componentName, parentPaths);
+      const { mappedComponentName: mappedComponentInstanceName } = createMappedComponentName(
+        comConfig.componentName,
+        parentPaths
+      );
       const neededComponentStateProperties: ComponentState = {
-        componentName: comConfig.componentName,
         name: comConfig.fieldName,
-        type: comConfig.type,
         disabled: false,
         hidden: false,
       };
@@ -178,17 +172,17 @@ export const createUIBuilder = (args: {
           return result;
         },
         getFormControl: () => {
-          const formComponent = parentPaths.find((p) => isFormComponent(p.type));
+          const formComponent = parentPaths.find((p) => p.group === 'form');
           if (formComponent) {
             const parentPathsToFormComponentPosition = [] as ParentPath[];
             for (const path of parentPaths) {
-              if (isFormComponent(path.type)) {
+              if (path.group === 'form') {
                 break;
               }
               parentPathsToFormComponentPosition.push(path);
             }
             const { mappedComponentName: mappedFormComponentInstanceName } =
-              createMappedFieldNameForComponentInstances(
+              createMappedComponentName(
                 formComponent.componentName,
                 parentPathsToFormComponentPosition
               );
@@ -204,93 +198,141 @@ export const createUIBuilder = (args: {
         updatePartialComponentInstance: _updatePartialComponentInstance,
       };
 
-      const __formControl = isFormComponent(comConfig.type)
-        ? createFormControl({
-            mode: 'all',
-          })
-        : undefined;
+      /**
+       * Save validation dependencies to use for trigger if dependent fields are changed.
+       */
+      const saveValidationDependencies = () => {
+        if (Object.keys(comConfig.validations ?? {}).length) {
+          const { mappedFieldName: mappedFieldValueName } = createMappedFieldName(
+            comConfig.fieldName!,
+            parentPaths
+          );
+
+          Object.values(comConfig.validations ?? {}).forEach((validationConfig) => {
+            if (typeof validationConfig === 'boolean') return;
+
+            if (validationConfig.when?.dependsOn?.length) {
+              validationConfig.when?.dependsOn.forEach((dependentFieldName) => {
+                const index = _validationDependencies.findIndex((d) =>
+                  compareFieldNames(
+                    d.fieldName,
+                    resolveArrayIndexes(parentPaths, dependentFieldName)
+                  )
+                );
+                if (index > -1) {
+                  _validationDependencies[index].deps = [
+                    ...new Set([..._validationDependencies[index].deps, mappedFieldValueName]),
+                  ];
+                } else {
+                  _validationDependencies.push({
+                    fieldName: resolveArrayIndexes(parentPaths, dependentFieldName),
+                    deps: [mappedFieldValueName],
+                  });
+                }
+              });
+            }
+          });
+        }
+      };
 
       /**
        * For UI components
        */
-      if (isUIComponent(comConfig.type)) {
+      if (comConfig.group === 'ui') {
         set(result, mappedComponentInstanceName, {
           __state: neededComponentStateProperties,
           componentConfig: comConfig,
-          __formControl,
           __control: basicComponentControl,
           parentPaths,
         } as ComponentInstance);
 
-        if (isUIContainerComponent(comConfig.type) && comConfig.components?.length) {
+        if (comConfig.components?.length) {
           createComponentInstances(
             comConfig.components,
             result,
             parentPaths.concat({
               id: comConfig.id,
-              type: comConfig.type,
+              group: comConfig.group,
               fieldName: comConfig.fieldName,
               componentName: comConfig.componentName,
             })
           );
         }
+        /**
+         * For FORM components
+         */
+      } else if (comConfig.group === 'form') {
+        set(result, mappedComponentInstanceName, {
+          __state: neededComponentStateProperties,
+          componentConfig: comConfig,
+          __formControl: createFormControl({
+            mode: 'all',
+          }),
+          __control: basicComponentControl,
+          parentPaths,
+        } as ComponentInstance);
 
+        if (comConfig.components?.length) {
+          createComponentInstances(
+            comConfig.components,
+            result,
+            parentPaths.concat({
+              id: comConfig.id,
+              group: comConfig.group,
+              fieldName: comConfig.fieldName,
+              componentName: comConfig.componentName,
+            })
+          );
+        }
         /**
          * For FORM FIELD components
          */
-      } else if (isFormFieldComponent(comConfig.type)) {
-        const formComponent = parentPaths.find((p) => isFormComponent(p.type));
+      } else if (comConfig.group === 'form-field') {
+        const formComponent = parentPaths.find((p) => p.group === 'form');
         if (!formComponent)
           throw Error('Form field component must be wrapped inside form component');
-        const { mappedFieldName: mappedFieldValueName } = createMappedFieldNameForValues(
+
+        set(result, mappedComponentInstanceName, {
+          __state: neededComponentStateProperties,
+          componentConfig: comConfig,
+          __control: basicComponentControl,
+          parentPaths,
+        } as ComponentInstance);
+
+        saveValidationDependencies();
+
+        if (comConfig.components?.length) {
+          createComponentInstances(
+            comConfig.components,
+            result,
+            parentPaths.concat({
+              id: comConfig.id,
+              group: comConfig.group,
+              fieldName: comConfig.fieldName,
+              componentName: comConfig.componentName,
+            })
+          );
+        }
+      } else if (comConfig.group === 'form-array-field') {
+        const formComponent = parentPaths.find((p) => p.group === 'form');
+
+        if (!formComponent)
+          throw Error('Form field component must be wrapped inside form component');
+        const { mappedFieldName: mappedFieldValueName } = createMappedFieldName(
           comConfig.fieldName!,
           parentPaths
         );
 
-        /**
-         * Save validation dependencies to use for trigger if dependent fields are changed.
-         */
-        if (Object.keys(comConfig.validations ?? {}).length) {
-          const saveValidationDependencies = () => {
-            Object.values(comConfig.validations ?? {}).forEach((validationConfig) => {
-              if (typeof validationConfig === 'boolean') return;
-
-              if (validationConfig.when?.dependsOn?.length) {
-                validationConfig.when?.dependsOn.forEach((dependentFieldName) => {
-                  const index = _validationDependencies.findIndex((d) =>
-                    compareFieldNames(
-                      d.fieldName,
-                      resolveArrayIndexes(parentPaths, dependentFieldName)
-                    )
-                  );
-                  if (index > -1) {
-                    _validationDependencies[index].deps = [
-                      ...new Set([..._validationDependencies[index].deps, mappedFieldValueName]),
-                    ];
-                  } else {
-                    _validationDependencies.push({
-                      fieldName: resolveArrayIndexes(parentPaths, dependentFieldName),
-                      deps: [mappedFieldValueName],
-                    });
-                  }
-                });
-              }
-            });
-          };
-          saveValidationDependencies();
-          console.log(_validationDependencies);
-        }
-
         const getFormComponentInstances = () => {
           const parentPathsToFormComponentPosition = [] as ParentPath[];
           for (const path of parentPaths) {
-            if (isFormComponent(path.type)) {
+            if (path.group === 'form') {
               break;
             }
             parentPathsToFormComponentPosition.push(path);
           }
           const { mappedComponentName: mappedFormComponentInstanceName } =
-            createMappedFieldNameForComponentInstances(
+            createMappedComponentName(
               formComponent.componentName,
               parentPathsToFormComponentPosition
             );
@@ -300,314 +342,285 @@ export const createUIBuilder = (args: {
 
         const formComponentInstance = getFormComponentInstances();
 
-        if (isArrayFieldComponent(comConfig.type)) {
-          const { getValues, control, reset } = formComponentInstance.__formControl!;
-          // Init defaultValue
-          reset(set(getValues() ?? {}, mappedFieldValueName, comConfig.defaultValue));
+        saveValidationDependencies();
 
-          const arrayField = createFieldArray({
-            name: mappedFieldValueName,
-            control: control,
-          });
-          const arrayComponentControl = {
-            ...basicComponentControl,
-            ...arrayField,
-            replace: (value) => {
-              const currentArrayInstance = get(
-                _componentInstances,
-                mappedComponentInstanceName
-              ) as ArrayFieldComponentInstance;
-              const arrayValue = convertToArrayPayload(value);
-              if (arrayValue.length) {
-                arrayField.replace(arrayValue);
-                const result = produce(_componentInstances, (draft) => {
-                  Array(arrayValue.length)
-                    .fill(0)
-                    .map((_, index) => {
-                      const paths =
-                        currentArrayInstance.parentPaths?.concat?.([
-                          {
-                            id: currentArrayInstance.componentConfig.id,
-                            type: currentArrayInstance.componentConfig.type,
-                            fieldName: currentArrayInstance.componentConfig.fieldName,
-                            componentName: currentArrayInstance.componentConfig.componentName,
-                            index,
-                          },
-                        ]) ?? [];
-                      createComponentInstances(
-                        currentArrayInstance.componentConfig.components ?? [],
-                        draft as Record<string, ComponentInstance>,
-                        paths
-                      );
-                    });
-                });
-                _subjects.instances.next({
-                  componentName: mappedComponentInstanceName,
-                  componentInstances: result,
-                });
-                setComponentInstances(result);
-              } else {
-                _setComponentInstance(mappedComponentInstanceName, {
-                  ...get(_componentInstances, mappedComponentInstanceName),
-                  __children: [],
-                });
-              }
-            },
-            prepend: (value, options) => {
-              const currentArrayInstance = get(
-                _componentInstances,
-                mappedComponentInstanceName
-              ) as ArrayFieldComponentInstance;
+        const { getValues, control, reset } = formComponentInstance.__formControl!;
+        // Init defaultValue
+        reset(set(getValues() ?? {}, mappedFieldValueName, comConfig.defaultValue));
 
-              arrayField.prepend?.(value, options);
-
-              const cloneChildren =
-                Array.isArray(currentArrayInstance.__children) &&
-                currentArrayInstance.__children.length
-                  ? [...currentArrayInstance.__children]
-                  : [];
-              (currentArrayInstance.__children as Record<string, ComponentInstance>[]) = [];
-              convertToArrayPayload(value).forEach((_, index) => {
-                const paths =
-                  currentArrayInstance.parentPaths?.concat?.([
-                    {
-                      id: currentArrayInstance.componentConfig.id,
-                      type: currentArrayInstance.componentConfig.type,
-                      fieldName: currentArrayInstance.componentConfig.fieldName,
-                      componentName: currentArrayInstance.componentConfig.componentName,
-                      index,
-                    },
-                  ]) ?? [];
-                createComponentInstances(
-                  currentArrayInstance.componentConfig.components ?? [],
-                  _componentInstances as Record<string, ComponentInstance>,
-                  paths
-                );
-              });
-              (currentArrayInstance.__children as Record<string, ComponentInstance>[]).push(
-                ...(cloneChildren as Record<string, ComponentInstance>[])
-              );
-
-              _subjects.instances.next({
-                componentName: mappedComponentInstanceName,
-                componentInstances: _componentInstances,
-              });
-            },
-            append: (appendValue, options) => {
-              const currentArrayInstance = get(
-                _componentInstances,
-                mappedComponentInstanceName
-              ) as ArrayFieldComponentInstance;
-
-              arrayField.append?.(appendValue, options);
-
-              convertToArrayPayload(appendValue).forEach((_, index) => {
-                const paths =
-                  currentArrayInstance.parentPaths?.concat?.([
-                    {
-                      id: currentArrayInstance.componentConfig.id,
-                      type: currentArrayInstance.componentConfig.type,
-                      fieldName: currentArrayInstance.componentConfig.fieldName,
-                      componentName: currentArrayInstance.componentConfig.componentName,
-                      index: ((currentArrayInstance.__children?.length as number) ?? 0) + index,
-                    },
-                  ]) ?? [];
-                createComponentInstances(
-                  currentArrayInstance.componentConfig.components ?? [],
-                  _componentInstances as Record<string, ComponentInstance>,
-                  paths
-                );
+        const arrayField = createFieldArray({
+          name: mappedFieldValueName,
+          control: control,
+        });
+        const arrayComponentControl = {
+          ...basicComponentControl,
+          ...arrayField,
+          replace: (value) => {
+            const currentArrayInstance = get(
+              _componentInstances,
+              mappedComponentInstanceName
+            ) as ArrayFieldComponentInstance;
+            const arrayValue = convertToArrayPayload(value);
+            if (arrayValue.length) {
+              arrayField.replace(arrayValue);
+              const result = produce(_componentInstances, (draft) => {
+                Array(arrayValue.length)
+                  .fill(0)
+                  .map((_, index) => {
+                    const paths =
+                      currentArrayInstance.parentPaths?.concat?.([
+                        {
+                          id: currentArrayInstance.componentConfig.id,
+                          group: currentArrayInstance.componentConfig.group,
+                          fieldName: currentArrayInstance.componentConfig.fieldName,
+                          componentName: currentArrayInstance.componentConfig.componentName,
+                          index,
+                        },
+                      ]) ?? [];
+                    createComponentInstances(
+                      currentArrayInstance.componentConfig.components ?? [],
+                      draft as Record<string, ComponentInstance>,
+                      paths
+                    );
+                  });
               });
               _subjects.instances.next({
                 componentName: mappedComponentInstanceName,
-                componentInstances: _componentInstances,
+                componentInstances: result,
               });
-            },
-            remove: (index) => {
-              if (isUndefined(index)) return;
-
-              const currentArrayInstance = get(
-                _componentInstances,
-                mappedComponentInstanceName
-              ) as ArrayFieldComponentInstance;
-
-              arrayField.remove?.(index);
-
-              if (currentArrayInstance.__children?.length) {
-                removeAt(currentArrayInstance.__children, index);
-              }
-
-              _subjects.instances.next({
-                componentName: mappedComponentInstanceName,
-                componentInstances: _componentInstances,
-              });
-
               setComponentInstances(result);
-            },
-            insert: (atIndex, value, options) => {
-              if (isUndefined(atIndex)) return;
-
-              const currentArrayInstance = get(
-                _componentInstances,
-                mappedComponentInstanceName
-              ) as ArrayFieldComponentInstance;
-              arrayField.insert?.(atIndex, value, options);
-              const formerChildren = currentArrayInstance.__children?.slice(0, atIndex) ?? [];
-              const laterChildren = currentArrayInstance.__children?.slice(atIndex) ?? [];
-              convertToArrayPayload(value).forEach((_, idx) => {
-                const paths =
-                  currentArrayInstance.parentPaths?.concat?.([
-                    {
-                      id: currentArrayInstance.componentConfig.id,
-                      type: currentArrayInstance.componentConfig.type,
-                      fieldName: currentArrayInstance.componentConfig.fieldName,
-                      componentName: currentArrayInstance.componentConfig.componentName,
-                      index: atIndex + idx,
-                    },
-                  ]) ?? [];
-                createComponentInstances(
-                  currentArrayInstance.componentConfig.components ?? [],
-                  _componentInstances as Record<string, ComponentInstance>,
-                  paths
-                );
+            } else {
+              _setComponentInstance(mappedComponentInstanceName, {
+                ...get(_componentInstances, mappedComponentInstanceName),
+                __children: [],
               });
+            }
+          },
+          prepend: (value, options) => {
+            const currentArrayInstance = get(
+              _componentInstances,
+              mappedComponentInstanceName
+            ) as ArrayFieldComponentInstance;
 
-              currentArrayInstance.__children = [
-                ...formerChildren,
-                ...(currentArrayInstance.__children?.slice?.(
-                  atIndex,
-                  atIndex + convertToArrayPayload(value).length
-                ) ?? []),
-                ...laterChildren,
-              ];
+            arrayField.prepend?.(value, options);
 
-              _subjects.instances.next({
-                componentName: mappedComponentInstanceName,
-                componentInstances: _componentInstances,
-              });
-            },
-            swap: (indexA, indexB) => {
-              if (isUndefined(indexA) || isUndefined(indexB)) return;
-
-              const currentArrayInstance = get(
-                _componentInstances,
-                mappedComponentInstanceName
-              ) as ArrayFieldComponentInstance;
-              arrayField.swap?.(indexA, indexB);
-
-              if (currentArrayInstance.__children?.length) {
-                [currentArrayInstance.__children[indexA], currentArrayInstance.__children[indexB]] =
-                  [
-                    currentArrayInstance.__children[indexB],
-                    currentArrayInstance.__children[indexA],
-                  ];
-              }
-
-              _subjects.instances.next({
-                componentName: mappedComponentInstanceName,
-                componentInstances: _componentInstances,
-              });
-            },
-            move: (from, to) => {
-              if (isUndefined(from) || isUndefined(to)) return;
-
-              const currentArrayInstance = get(
-                _componentInstances,
-                mappedComponentInstanceName
-              ) as ArrayFieldComponentInstance;
-              arrayField.move?.(from, to);
-
-              if (currentArrayInstance.__children) {
-                move(currentArrayInstance.__children, from, to);
-              }
-
-              _subjects.instances.next({
-                componentName: mappedComponentInstanceName,
-                componentInstances: _componentInstances,
-              });
-            },
-            update: (index, updateValue) => {
-              const currentArrayInstance = get(
-                _componentInstances,
-                mappedComponentInstanceName
-              ) as ArrayFieldComponentInstance;
-
-              if (currentArrayInstance.__children?.[index]) {
-                arrayField?.update?.(index, updateValue);
-                const paths =
-                  currentArrayInstance.parentPaths?.concat?.([
-                    {
-                      id: currentArrayInstance.componentConfig.id,
-                      type: currentArrayInstance.componentConfig.type,
-                      fieldName: currentArrayInstance.componentConfig.fieldName,
-                      componentName: currentArrayInstance.componentConfig.componentName,
-                      index,
-                    },
-                  ]) ?? [];
-                createComponentInstances(
-                  currentArrayInstance.componentConfig.components ?? [],
-                  _componentInstances as Record<string, ComponentInstance>,
-                  paths
-                );
-              }
-
-              _subjects.instances.next({
-                componentName: mappedComponentInstanceName,
-                componentInstances: _componentInstances,
-              });
-            },
-          } as ComponentControl;
-          set(result, mappedComponentInstanceName, {
-            __state: neededComponentStateProperties,
-            componentConfig: comConfig,
-            __control: arrayComponentControl,
-            parentPaths,
-          } as ComponentInstance);
-
-          const value: Record<string, any>[] | undefined = getValues(mappedFieldValueName);
-          if (value?.length && comConfig.components?.length) {
-            value.forEach((_, index) =>
+            const cloneChildren =
+              Array.isArray(currentArrayInstance.__children) &&
+              currentArrayInstance.__children.length
+                ? [...currentArrayInstance.__children]
+                : [];
+            (currentArrayInstance.__children as Record<string, ComponentInstance>[]) = [];
+            convertToArrayPayload(value).forEach((_, index) => {
+              const paths =
+                currentArrayInstance.parentPaths?.concat?.([
+                  {
+                    id: currentArrayInstance.componentConfig.id,
+                    group: currentArrayInstance.componentConfig.group,
+                    fieldName: currentArrayInstance.componentConfig.fieldName,
+                    componentName: currentArrayInstance.componentConfig.componentName,
+                    index,
+                  },
+                ]) ?? [];
               createComponentInstances(
-                comConfig.components ?? [],
-                result,
-                parentPaths.concat({
-                  id: comConfig.id,
-                  type: comConfig.type,
-                  componentName: comConfig.componentName,
-                  fieldName: comConfig.fieldName,
-                  index: index,
-                })
-              )
+                currentArrayInstance.componentConfig.components ?? [],
+                _componentInstances as Record<string, ComponentInstance>,
+                paths
+              );
+            });
+            (currentArrayInstance.__children as Record<string, ComponentInstance>[]).push(
+              ...(cloneChildren as Record<string, ComponentInstance>[])
             );
-          }
-        } else if (isObjectFieldComponent(comConfig.type)) {
-          set(result, mappedComponentInstanceName, {
-            __state: neededComponentStateProperties,
-            componentConfig: comConfig,
-            __control: basicComponentControl,
-            parentPaths,
-          } as ComponentInstance);
 
-          if (comConfig.components?.length) {
+            _subjects.instances.next({
+              componentName: mappedComponentInstanceName,
+              componentInstances: _componentInstances,
+            });
+          },
+          append: (appendValue, options) => {
+            const currentArrayInstance = get(
+              _componentInstances,
+              mappedComponentInstanceName
+            ) as ArrayFieldComponentInstance;
+
+            arrayField.append?.(appendValue, options);
+
+            convertToArrayPayload(appendValue).forEach((_, index) => {
+              const paths =
+                currentArrayInstance.parentPaths?.concat?.([
+                  {
+                    id: currentArrayInstance.componentConfig.id,
+                    group: currentArrayInstance.componentConfig.group,
+                    fieldName: currentArrayInstance.componentConfig.fieldName,
+                    componentName: currentArrayInstance.componentConfig.componentName,
+                    index: ((currentArrayInstance.__children?.length as number) ?? 0) + index,
+                  },
+                ]) ?? [];
+              createComponentInstances(
+                currentArrayInstance.componentConfig.components ?? [],
+                _componentInstances as Record<string, ComponentInstance>,
+                paths
+              );
+            });
+            _subjects.instances.next({
+              componentName: mappedComponentInstanceName,
+              componentInstances: _componentInstances,
+            });
+          },
+          remove: (index) => {
+            if (isUndefined(index)) return;
+
+            const currentArrayInstance = get(
+              _componentInstances,
+              mappedComponentInstanceName
+            ) as ArrayFieldComponentInstance;
+
+            arrayField.remove?.(index);
+
+            if (currentArrayInstance.__children?.length) {
+              removeAt(currentArrayInstance.__children, index);
+            }
+
+            _subjects.instances.next({
+              componentName: mappedComponentInstanceName,
+              componentInstances: _componentInstances,
+            });
+
+            setComponentInstances(result);
+          },
+          insert: (atIndex, value, options) => {
+            if (isUndefined(atIndex)) return;
+
+            const currentArrayInstance = get(
+              _componentInstances,
+              mappedComponentInstanceName
+            ) as ArrayFieldComponentInstance;
+            arrayField.insert?.(atIndex, value, options);
+            const formerChildren = currentArrayInstance.__children?.slice(0, atIndex) ?? [];
+            const laterChildren = currentArrayInstance.__children?.slice(atIndex) ?? [];
+            convertToArrayPayload(value).forEach((_, idx) => {
+              const paths =
+                currentArrayInstance.parentPaths?.concat?.([
+                  {
+                    id: currentArrayInstance.componentConfig.id,
+                    group: currentArrayInstance.componentConfig.group,
+                    fieldName: currentArrayInstance.componentConfig.fieldName,
+                    componentName: currentArrayInstance.componentConfig.componentName,
+                    index: atIndex + idx,
+                  },
+                ]) ?? [];
+              createComponentInstances(
+                currentArrayInstance.componentConfig.components ?? [],
+                _componentInstances as Record<string, ComponentInstance>,
+                paths
+              );
+            });
+
+            currentArrayInstance.__children = [
+              ...formerChildren,
+              ...(currentArrayInstance.__children?.slice?.(
+                atIndex,
+                atIndex + convertToArrayPayload(value).length
+              ) ?? []),
+              ...laterChildren,
+            ];
+
+            _subjects.instances.next({
+              componentName: mappedComponentInstanceName,
+              componentInstances: _componentInstances,
+            });
+          },
+          swap: (indexA, indexB) => {
+            if (isUndefined(indexA) || isUndefined(indexB)) return;
+
+            const currentArrayInstance = get(
+              _componentInstances,
+              mappedComponentInstanceName
+            ) as ArrayFieldComponentInstance;
+            arrayField.swap?.(indexA, indexB);
+
+            if (currentArrayInstance.__children?.length) {
+              [currentArrayInstance.__children[indexA], currentArrayInstance.__children[indexB]] = [
+                currentArrayInstance.__children[indexB],
+                currentArrayInstance.__children[indexA],
+              ];
+            }
+
+            _subjects.instances.next({
+              componentName: mappedComponentInstanceName,
+              componentInstances: _componentInstances,
+            });
+          },
+          move: (from, to) => {
+            if (isUndefined(from) || isUndefined(to)) return;
+
+            const currentArrayInstance = get(
+              _componentInstances,
+              mappedComponentInstanceName
+            ) as ArrayFieldComponentInstance;
+            arrayField.move?.(from, to);
+
+            if (currentArrayInstance.__children) {
+              move(currentArrayInstance.__children, from, to);
+            }
+
+            _subjects.instances.next({
+              componentName: mappedComponentInstanceName,
+              componentInstances: _componentInstances,
+            });
+          },
+          update: (index, updateValue) => {
+            const currentArrayInstance = get(
+              _componentInstances,
+              mappedComponentInstanceName
+            ) as ArrayFieldComponentInstance;
+
+            if (currentArrayInstance.__children?.[index]) {
+              arrayField?.update?.(index, updateValue);
+              const paths =
+                currentArrayInstance.parentPaths?.concat?.([
+                  {
+                    id: currentArrayInstance.componentConfig.id,
+                    group: currentArrayInstance.componentConfig.group,
+                    fieldName: currentArrayInstance.componentConfig.fieldName,
+                    componentName: currentArrayInstance.componentConfig.componentName,
+                    index,
+                  },
+                ]) ?? [];
+              createComponentInstances(
+                currentArrayInstance.componentConfig.components ?? [],
+                _componentInstances as Record<string, ComponentInstance>,
+                paths
+              );
+            }
+
+            _subjects.instances.next({
+              componentName: mappedComponentInstanceName,
+              componentInstances: _componentInstances,
+            });
+          },
+        } as ComponentControl;
+        set(result, mappedComponentInstanceName, {
+          __state: neededComponentStateProperties,
+          componentConfig: comConfig,
+          __control: arrayComponentControl,
+          parentPaths,
+        } as ComponentInstance);
+
+        const value: Record<string, any>[] | undefined = getValues(mappedFieldValueName);
+        if (value?.length && comConfig.components?.length) {
+          value.forEach((_, index) =>
             createComponentInstances(
-              comConfig.components,
+              comConfig.components ?? [],
               result,
               parentPaths.concat({
                 id: comConfig.id,
-                type: comConfig.type,
-                fieldName: comConfig.fieldName,
+                group: comConfig.group,
                 componentName: comConfig.componentName,
+                fieldName: comConfig.fieldName,
+                index: index,
               })
-            );
-          }
-        } else {
-          // Primitive field
-          set(result, mappedComponentInstanceName, {
-            __state: neededComponentStateProperties,
-            componentConfig: comConfig,
-            __control: basicComponentControl,
-            parentPaths,
-          } as ComponentInstance);
+            )
+          );
         }
       }
     });
@@ -616,7 +629,7 @@ export const createUIBuilder = (args: {
   createComponentInstances(componentConfigs, _componentInstances, []);
   setComponentInstances(_componentInstances);
 
-  const r = detectAndGenerateCircularDependencyGraph(_validationDependencies);
+  // const r = detectAndGenerateCircularDependencyGraph(_validationDependencies);
 
   return {
     _setComponentInstance,

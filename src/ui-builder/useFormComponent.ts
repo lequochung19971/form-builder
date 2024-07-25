@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { FieldValues, FormState, InternalFieldName, UseFormReturn } from 'react-hook-form';
 import { ComponentProps } from './types';
 import { useWatchComponentInstance } from './useWatchComponentInstance';
-import { createMappedFieldNameForComponentInstances, generateActions } from './utils';
+import { createMappedComponentName, generateActions } from './utils';
 import { useUIBuilderContext } from './UIBuilderContext';
 
 export const useFormComponent = (props: ComponentProps) => {
@@ -14,8 +14,10 @@ export const useFormComponent = (props: ComponentProps) => {
   const { actions = {} } = componentConfig;
   const { actionMethods } = useUIBuilderContext();
 
-  const { mappedComponentName: mappedComponentInstanceName } =
-    createMappedFieldNameForComponentInstances(componentConfig.componentName, parentPaths);
+  const { mappedComponentName: mappedComponentInstanceName } = createMappedComponentName(
+    componentConfig.componentName,
+    parentPaths
+  );
 
   const componentInstance = useWatchComponentInstance({
     componentName: mappedComponentInstanceName,

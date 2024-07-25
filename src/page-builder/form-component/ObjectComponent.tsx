@@ -25,7 +25,7 @@ export const ObjectComponent: React.FunctionComponent<ObjectComponentProps> = (p
             fieldName: componentConfig.fieldName,
             componentName: componentConfig.componentName,
             id: componentConfig.id,
-            type: componentConfig.type,
+            group: componentConfig.group,
           })}
         />
       ))}

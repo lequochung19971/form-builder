@@ -36,7 +36,7 @@ export const FormComponent: React.FunctionComponent<FormComponentProps> = (props
                 parentId={componentConfig.id}
                 parentPaths={parentPaths?.concat({
                   id: componentConfig.id,
-                  type: componentConfig.type,
+                  group: componentConfig.group,
                   componentName: componentConfig.componentName,
                 })}
               />
@@ -70,7 +70,7 @@ export const FormComponent: React.FunctionComponent<FormComponentProps> = (props
                 parentId={componentConfig.id}
                 parentPaths={parentPaths?.concat({
                   id: componentConfig.id,
-                  type: componentConfig.type,
+                  group: componentConfig.group,
                   componentName: componentConfig.componentName,
                 })}
               />

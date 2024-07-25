@@ -6,8 +6,8 @@ import { useUIBuilderContext } from './UIBuilderContext';
 import { useWatchComponentInstance } from './useWatchComponentInstance';
 import {
   compareFieldNames,
-  createMappedFieldNameForComponentInstances,
-  createMappedFieldNameForValues,
+  createMappedComponentName,
+  createMappedFieldName,
   generateActions,
   generateValidationMethods,
 } from './utils';
@@ -22,12 +22,12 @@ export const useFormFieldComponent = (props: ComponentProps) => {
     throw Error('Must be wrapped by form component');
   }
 
-  const { mappedFieldName: mappedFieldName } = createMappedFieldNameForValues(
+  const { mappedFieldName: mappedFieldName } = createMappedFieldName(
     componentConfig.fieldName!,
     parentPaths
   );
 
-  const { mappedComponentName: mappedComponentName } = createMappedFieldNameForComponentInstances(
+  const { mappedComponentName: mappedComponentName } = createMappedComponentName(
     componentConfig.fieldName!,
     parentPaths
   );

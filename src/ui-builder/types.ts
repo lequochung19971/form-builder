@@ -1,10 +1,8 @@
 import { CreateArrayReturn } from '@/form/createFieldArray';
-import { FieldValue, FieldValues, UseFormReturn, ValidateResult } from 'react-hook-form';
+import { FieldValues, UseFormReturn, ValidateResult } from 'react-hook-form';
 import { UIBuilderControl } from './createUIBuilder';
 
 export type ComponentState = {
-  componentName: string;
-  type: string;
   name?: string;
   disabled?: boolean;
   hidden?: boolean;
@@ -72,38 +70,12 @@ export type VisibilityMethodArgs = {
   };
 };
 
-export enum ComponentType {
-  /**
-   * UI components
-   */
-  INPUT = 'input',
-  BUTTON = 'button',
-  CONTAINER = 'container',
-  PAGE = 'page',
-  FORM = 'form',
-  DIALOG = 'dialog',
-  TABS = 'tabs',
-  TAB = 'tab',
-  COLUMN = 'column',
-  TEXT = 'text',
-
-  /**
-   * Data components
-   * Components are used inside Form component and used to collected data
-   */
-  INPUT_FIELD = 'inputField',
-  OBJECT_CONTAINER = 'objectContainer',
-  ARRAY_CONTAINER = 'arrayContainer',
-  SUBMIT_BUTTON = 'submitButton',
-  DATA_TABLE = 'dataTable',
-}
-
 export type ParentPath = {
   // Parent Id
   id: string;
 
   fieldName?: string;
-  type: ComponentType;
+  group: ComponentGroup;
   componentName: string;
   /**
    * if having index,it means array
@@ -112,6 +84,8 @@ export type ParentPath = {
 
   parentPaths?: ParentPath[];
 };
+
+export type ComponentGroup = 'ui' | 'form' | 'form-field' | 'form-array-field';
 
 // VALIDATION
 // TODO: In coming feature
@@ -198,14 +172,17 @@ export type VisibilityConfig = {
     | boolean;
 };
 
-export type BaseComponentConfig = {
+export enum ComponentType {}
+
+export interface BaseComponentConfig {
   id: string;
   componentName: string;
-  type: ComponentType;
+  type?: ComponentType | any;
+  group: ComponentGroup;
   index?: number;
   parentId?: string;
   label?: string;
-};
+}
 
 export type FieldComponentConfig = BaseComponentConfig & {
   fieldName: string;

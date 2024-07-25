@@ -18,10 +18,10 @@ export const ContainerComponent: React.FunctionComponent<ContainerComponentProps
     () =>
       parentPaths?.concat({
         id: componentConfig.id,
-        type: componentConfig.type,
+        group: componentConfig.group,
         componentName: componentConfig.componentName,
       }),
-    [componentConfig.componentName, componentConfig.id, componentConfig.type, parentPaths]
+    [componentConfig.componentName, componentConfig.group, componentConfig.id, parentPaths]
   );
 
   return (

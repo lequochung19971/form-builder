@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { ComponentConfig, ComponentType, ParentPath } from '@/ui-builder/types';
+import { ComponentConfig, ParentPath, ComponentType } from '@/ui-builder/types';
 import { useUIBuilder } from '@/ui-builder/useUIBuilder';
 import { cn } from '@/utils/uiUtils';
 import {
@@ -30,7 +30,6 @@ import { CustomMouseSensor, CustomPointerSensor } from './dnd/customSensor';
 import { ComponentPropertiesDialog } from './properties-configuration/ComponentPropertiesDialog';
 import { addItemAtIndex, flattenTree, moveItemToIndex, removeItem, updateItem } from './utils';
 import { UIBuilderProvider } from '@/ui-builder/UIBuilderContext';
-import { isArrayFieldComponent } from '@/ui-builder/utils';
 
 type PageBuilderContextValue = {
   isBuildingMode: boolean;
@@ -180,7 +179,7 @@ export const PageBuilder: React.FunctionComponent<{
       const overPosition = checkOverPosition(active.rect.current.translated, over?.rect);
 
       if (over?.data?.current?.isRoot) {
-        setSelectedComponentConfig(getDefaultComponentConfig(activeItem.type));
+        setSelectedComponentConfig(getDefaultComponentConfig(activeItem.type!));
         setOverAt({
           index: 0,
         });
@@ -191,7 +190,7 @@ export const PageBuilder: React.FunctionComponent<{
         const addIndex =
           overPosition === 'above' ? overItem?.index ?? 0 : (overItem?.index ?? 0) + 1;
 
-        setSelectedComponentConfig(getDefaultComponentConfig(activeItem.type));
+        setSelectedComponentConfig(getDefaultComponentConfig(activeItem.type!));
         setOverAt({
           index: addIndex,
           parentId: overItem.parentId,
@@ -216,6 +215,7 @@ export const PageBuilder: React.FunctionComponent<{
           {
             id: `${activeItem.type}-${uuidV4()}`,
             componentName: `${activeItem.type}-${uuidV4()}`,
+            group: activeItem.group,
             type: activeItem.type,
           },
           addIndex,
@@ -264,7 +264,7 @@ export const PageBuilder: React.FunctionComponent<{
 
     const config = {
       ...values,
-      defaultValue: isArrayFieldComponent(values.type!) ? [{}] : undefined,
+      defaultValue: values.group === 'form-array-field' ? [{}] : undefined,
     };
 
     // Add New

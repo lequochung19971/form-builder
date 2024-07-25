@@ -56,12 +56,12 @@ export const TabsComponent: React.FunctionComponent<TabsComponentProps> = (props
                 parentPaths={parentPaths?.concat([
                   {
                     id: componentConfig.id,
-                    type: componentConfig.type,
+                    group: componentConfig.group,
                     componentName: componentConfig.componentName,
                   },
                   {
                     id: tab.id,
-                    type: tab.type,
+                    group: tab.group,
                     componentName: tab.componentName,
                   },
                 ])}

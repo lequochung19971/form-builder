@@ -11,11 +11,13 @@ const components: ComponentConfig[] = [
     componentName: 'header1',
     type: ComponentType.TEXT,
     label: 'Demo UI Builder',
+    group: 'ui',
   },
   {
     id: 'form-6a33ba6f-9393-4190-a1d9-8fa7f04729a0',
     componentName: 'form',
     type: ComponentType.FORM,
+    group: 'form',
     components: [
       {
         id: 'arrayContainer-34b17f15-2ae9-4d0b-8e2d-47aa9ffe34fc',
@@ -23,12 +25,14 @@ const components: ComponentConfig[] = [
         fieldName: 'array',
         type: ComponentType.ARRAY_CONTAINER,
         defaultValue: [{}],
+        group: 'form-array-field',
         components: [
           {
             id: 'inputField-6dc1deb7-f0c7-406d-b55a-7c29f1ba6c17',
             componentName: 'firstName',
             type: ComponentType.INPUT_FIELD,
             fieldName: 'firstName',
+            group: 'form-field',
             validations: {
               required: {
                 when: {
@@ -42,11 +46,13 @@ const components: ComponentConfig[] = [
             id: 'inputField-dbb0ea77-3ca9-4d19-89b5-d8b07e09a87a',
             componentName: 'lastName',
             type: ComponentType.INPUT_FIELD,
+            group: 'form-field',
             fieldName: 'lastName',
           },
           {
             id: 'inputField-dcfdadc8-8723-4f01-a49d-50025081e2d9',
             componentName: 'fullName',
+            group: 'form-field',
             type: ComponentType.INPUT_FIELD,
             fieldName: 'fullName',
             // validation: {
@@ -64,6 +70,7 @@ const components: ComponentConfig[] = [
         componentName: 'firstName',
         type: ComponentType.INPUT_FIELD,
         fieldName: 'firstName',
+        group: 'form-field',
         validations: {
           required: {
             when: {
@@ -78,6 +85,7 @@ const components: ComponentConfig[] = [
         componentName: 'lastName',
         type: ComponentType.INPUT_FIELD,
         fieldName: 'lastName',
+        group: 'form-field',
         validations: {
           required: {
             when: {
@@ -91,6 +99,7 @@ const components: ComponentConfig[] = [
         id: 'inputField-dcfdadc8-8723-4f01-a49d-50025081e2d8',
         componentName: 'fullName',
         type: ComponentType.INPUT_FIELD,
+        group: 'form-field',
         fieldName: 'fullName',
         // validations: {
         //   required: {
@@ -105,6 +114,7 @@ const components: ComponentConfig[] = [
         componentName: 'button',
         type: ComponentType.BUTTON,
         fieldName: 'fullName',
+        group: 'ui',
         label: 'Click Here',
         actions: {
           click: {
