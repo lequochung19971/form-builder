@@ -2,14 +2,13 @@ import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { Label } from '@/components/ui/label';
 import { CirclePlus, Trash2 } from 'lucide-react';
-import { useFieldArray, useForm } from 'react-hook-form';
+import { useFieldArray, useForm, UseFormReturn } from 'react-hook-form';
 import { v4 as uuidV4 } from 'uuid';
 import { InputFormField } from './form-fields/InputFormField';
 import { BaseComponentProperties } from './types';
 import { ComponentType } from '@/ui-builder/types';
 
-const Tabs: React.FunctionComponent<{ control: any }> = ({ control }) => {
-  // const formMethods = useFormContext<Partial<ComponentConfig>>();
+const Tabs: React.FunctionComponent<{ control: UseFormReturn['control'] }> = ({ control }) => {
   const { fields, append, remove } = useFieldArray({
     control: control,
     name: 'components',

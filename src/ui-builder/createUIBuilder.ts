@@ -138,7 +138,6 @@ export const createUIBuilder = (args: {
         parentPaths
       );
       const neededComponentStateProperties: ComponentState = {
-        name: comConfig.fieldName,
         disabled: false,
         hidden: false,
       };

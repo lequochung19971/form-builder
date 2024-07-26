@@ -22,7 +22,7 @@ const ButtonComponent: React.FunctionComponent<ButtonComponentProps> = (props) =
         data={componentConfig}
         parentId={parentId}>
         <Button data-no-dnd onClick={actions.onClick}>
-          {componentConfig.label}
+          {componentConfig.props?.label}
         </Button>
       </DragDropWrapper>
     );
@@ -30,7 +30,7 @@ const ButtonComponent: React.FunctionComponent<ButtonComponentProps> = (props) =
 
   return (
     <Button data-no-dnd onClick={actions.onClick}>
-      {componentConfig.label}
+      {componentConfig.props?.label}
     </Button>
   );
 };

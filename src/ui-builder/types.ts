@@ -3,11 +3,9 @@ import { FieldValues, UseFormReturn, ValidateResult } from 'react-hook-form';
 import { UIBuilderControl } from './createUIBuilder';
 
 export type ComponentState = {
-  name?: string;
   disabled?: boolean;
   hidden?: boolean;
   loading?: boolean;
-  index?: number;
 };
 
 type BaseComponentInstance = {
@@ -142,6 +140,10 @@ type BuiltInActionConfigs = {
   showComponent: {
     targetComponentName: string;
   };
+  passRowIdToComponentProp: {
+    targetComponentName: string;
+    propKey: 'id';
+  };
 };
 
 export type ActionMethods = Record<string, ActionMethod>;
@@ -158,19 +160,14 @@ export type ComponentActions = {
 };
 
 export type VisibilityConfig = {
-  disabled?:
-    | {
-        method: (args: VisibilityMethodArgs) => boolean;
-        watch?: Watch;
-      }
-    | boolean;
-  hide?:
-    | {
-        method: (args: VisibilityMethodArgs) => boolean;
-        watch?: Watch;
-      }
-    | boolean;
+  disabled?: boolean;
+  hide?: boolean;
+  loading?: boolean;
 };
+
+export interface BaseComponentProps extends Record<string, any> {
+  label?: string;
+}
 
 export enum ComponentType {}
 
@@ -181,7 +178,7 @@ export interface BaseComponentConfig {
   group: ComponentGroup;
   index?: number;
   parentId?: string;
-  label?: string;
+  props?: BaseComponentProps;
 }
 
 export type FieldComponentConfig = BaseComponentConfig & {

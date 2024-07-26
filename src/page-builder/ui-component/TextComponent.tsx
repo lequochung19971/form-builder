@@ -21,7 +21,7 @@ const TextComponent: React.FunctionComponent<TextComponentProps> = (props) => {
         data={componentConfig}
         parentId={parentId}>
         <h1 className={cn('scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl')}>
-          {componentConfig.label}
+          {componentConfig.props?.label}
         </h1>
       </DragDropWrapper>
     );
@@ -29,7 +29,7 @@ const TextComponent: React.FunctionComponent<TextComponentProps> = (props) => {
 
   return (
     <h1 className={cn('scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl')}>
-      {componentConfig.label}
+      {componentConfig.props?.label}
     </h1>
   );
 };
