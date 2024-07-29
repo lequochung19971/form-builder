@@ -1,11 +1,17 @@
 import { useRef } from 'react';
 import { createUIBuilder, UIBuilderControl } from './createUIBuilder';
-import { ComponentConfig, ValidationMethod } from './types';
+import { ComponentConfig } from './types';
 
 export type UseUIBuilderReturn = {
   control: UIBuilderControl;
-  setComponentInstance: UIBuilderControl['_setComponentInstance'];
   getComponentInstances: UIBuilderControl['_getComponentInstances'];
+  updatePartialComponentProps: UIBuilderControl['_updatePartialComponentProps'];
+  setComponentProps: UIBuilderControl['_setComponentProps'];
+  actionMethods: UIBuilderControl['actionMethods'];
+  validationMethods: UIBuilderControl['validationMethods'];
+  /**
+   * Will reset everything (component instances, component configs,...)
+   */
   reset: (componentConfigs: ComponentConfig[]) => void;
 };
 
@@ -21,8 +27,9 @@ export const useUIBuilder = (props: {
 
   return {
     control: uiBuilderControl.current as UIBuilderControl,
-    setComponentInstance: uiBuilderControl.current._setComponentInstance,
     getComponentInstances: uiBuilderControl.current._getComponentInstances,
+    updatePartialComponentProps: uiBuilderControl.current._updatePartialComponentProps,
+    setComponentProps: uiBuilderControl.current._setComponentProps,
     reset: (componentConfigs: ComponentConfig[]) => {
       uiBuilderControl.current = createUIBuilder({
         ...props,
@@ -30,5 +37,7 @@ export const useUIBuilder = (props: {
       });
       uiBuilderControl.current._forceSubscribe();
     },
+    actionMethods: uiBuilderControl.current.actionMethods,
+    validationMethods: uiBuilderControl.current.validationMethods,
   };
 };

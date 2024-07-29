@@ -11,7 +11,7 @@ export const InputComponent: React.FunctionComponent<InputComponentProps> = (pro
   const { componentConfig, parentPaths: parentPaths, index, parentId } = props;
   const { isBuildingMode } = usePageBuilderContext();
 
-  const { actions } = useUIComponent({
+  const { actions, componentInstance } = useUIComponent({
     componentConfig,
     parentPaths: parentPaths,
   });
@@ -21,6 +21,9 @@ export const InputComponent: React.FunctionComponent<InputComponentProps> = (pro
       <Label>{componentConfig.componentName}</Label>
       <Input
         data-no-dnd
+        disabled={componentInstance.props.visibility?.disabled}
+        hidden={componentInstance.props.visibility?.hidden}
+        readOnly={componentInstance.props.visibility?.readOnly}
         placeholder={`Enter a ${componentConfig.componentName}`}
         onClick={actions.onClick}
         onChange={actions.onChange}

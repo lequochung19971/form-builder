@@ -6,9 +6,10 @@ import { TabsComponent, TabsComponentProps } from './ui-component/TabsComponent'
 import { ArrayComponent } from './form-component/ArrayComponent';
 import { InputFieldComponent } from './form-component/InputFieldComponent';
 import { FormComponent } from './form-component/FormComponent';
-import { ComponentConfig, ComponentType, ParentPath } from '@/ui-builder/types';
+import { ComponentConfig, ParentPath } from '@/ui-builder/types';
 import { ObjectComponent } from './form-component/ObjectComponent';
 import TextComponent from './ui-component/TextComponent';
+import { ComponentType } from './types';
 
 export const configuredComponents = {
   [ComponentType.INPUT]: InputComponent,

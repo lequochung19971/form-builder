@@ -1,27 +1,42 @@
+import { createFieldArray } from '@/form/createFieldArray';
 import { createFormControl } from '@/form/logic/createFormControl';
 import convertToArrayPayload from '@/utils/convertToArrayPayload';
 import createSubject, { Subject } from '@/utils/createSubject';
+import move from '@/utils/move';
 import { produce } from 'immer';
 import { get, isUndefined, merge, set } from 'lodash';
+import { DeepPartial } from 'react-hook-form';
+import builtInActionMethods from './actionMethods';
 import {
+  ActionConfigs,
+  ActionMethodCreations,
+  ActionMethods,
   ArrayFieldComponentInstance,
+  BaseComponentProps,
   ComponentConfig,
   ComponentControl,
   ComponentInstance,
   ComponentState,
+  EventActionMethods,
+  LifecycleActionMethod,
+  LifecycleActionMethodCreations,
+  LifecycleActionMethods,
   ParentPath,
   PartialComponentInstance,
+  ValidationConfig,
+  ValidationConfigMethod,
+  ValidationMethod,
+  ValidationMethodCreations,
+  ValidationMethods,
 } from './types';
-import move from '@/utils/move';
 import {
   compareFieldNames,
   createMappedComponentName,
   createMappedFieldName,
-  detectAndGenerateCircularDependencyGraph,
   removeAt,
-  resolveArrayIndices as resolveArrayIndexes,
+  resolveArrayIndexesForFieldName as resolveArrayIndexes,
 } from './utils';
-import { createFieldArray } from '@/form/createFieldArray';
+import builtInValidationMethods from './validationMethods';
 
 export type ComponentInstancesNextArgs = {
   componentName?: string;
@@ -36,29 +51,67 @@ type ValidationDependency = {
   deps: string[];
 };
 export type UIBuilderControl = {
-  _setComponentInstance: (
+  /**
+   * @caveat
+   * - Be careful when using `_setComponentInstance`.
+   * - Limit using `_setComponentInstance`, and recommend using `_setComponentProps`, `_updatePartialComponentProps` to update props.
+   * - If you want to update component state, recommend using `setComponentState` in each component instance `__control`, don't use `_setComponentInstance` to update `state`, it' not a best practice.
+   */
+  _setComponentInstance: <TInstance extends ComponentInstance = ComponentInstance>(
     componentName: string,
-    updateComponentInstance: ComponentInstance
+    updateComponentInstance: TInstance
   ) => void;
   _updatePartialComponentInstance: (
     componentName: string,
     updatedInstance: PartialComponentInstance
   ) => void;
-  _getComponentInstances: (
-    componentName: string | string[]
-  ) => ComponentInstance | ComponentInstance[];
+  _updatePartialComponentProps: <TProps extends BaseComponentProps = BaseComponentProps>(
+    componentName: string,
+    updatedProps: DeepPartial<TProps>
+  ) => void;
+  _setComponentProps: <TProps extends BaseComponentProps = BaseComponentProps>(
+    componentName: string,
+    componentProps: TProps | ((prevProps: TProps) => TProps)
+  ) => void;
+  _getComponentInstances: <
+    T extends string | string[],
+    R = T extends string[] ? ComponentInstance[] : ComponentInstance
+  >(
+    componentName: T
+  ) => R;
   _forceSubscribe: () => void;
   subjects: {
     instances: ComponentInstancesSubject;
   };
   get componentInstances(): Record<string, ComponentInstance>;
   get validationDependencies(): ValidationDependency[];
+  get actionMethods(): ActionMethodCreations;
+  get validationMethods(): ValidationMethodCreations;
 };
 
 export const createUIBuilder = (args: {
   componentConfigs: ComponentConfig[];
+  customActionMethods?: ActionMethodCreations;
+  customValidationMethods?: ValidationMethodCreations;
+  customLifecycleActionMethodCreations?: LifecycleActionMethodCreations;
 }): UIBuilderControl => {
-  const { componentConfigs } = args;
+  const {
+    componentConfigs,
+    customActionMethods = {},
+    customValidationMethods = {},
+    customLifecycleActionMethodCreations = {},
+  } = args;
+  const _actionMethods = {
+    ...builtInActionMethods,
+    ...customActionMethods,
+  } as ActionMethodCreations;
+  const _validationMethods = {
+    ...builtInValidationMethods,
+    ...customValidationMethods,
+  } as ValidationMethodCreations;
+  const _lifecycleActionMethods = {
+    ...customLifecycleActionMethodCreations,
+  } as LifecycleActionMethodCreations;
 
   let _componentInstances = {} as Record<string, ComponentInstance>;
   const _validationDependencies = [] as ValidationDependency[];
@@ -78,39 +131,119 @@ export const createUIBuilder = (args: {
     });
   };
 
-  const _setComponentInstance = (
+  const _setComponentInstance = <TInstance extends ComponentInstance = ComponentInstance>(
     componentName: string,
-    updateComponentInstance: ComponentInstance
+    updateComponentInstance: TInstance
   ) => {
-    const result = produce(_componentInstances, (draft) => {
-      set(draft, componentName, updateComponentInstance);
-    });
+    set(_componentInstances, componentName, updateComponentInstance);
+
     _subjects.instances.next({
       componentName,
-      componentInstances: result,
+      componentInstances: _componentInstances,
     });
-    setComponentInstances(result);
+    setComponentInstances(_componentInstances);
   };
   const _updatePartialComponentInstance = (
     componentName: string,
     updatedInstance: PartialComponentInstance
   ) => {
-    const result = produce(_componentInstances, (draft) => {
-      const prevComponentInstance = get(draft, componentName) ?? {};
-
+    const prevComponentInstance = get(_componentInstances, componentName);
+    if (prevComponentInstance) {
       const newComponentInstance = merge(prevComponentInstance, updatedInstance);
 
-      set(draft, componentName, newComponentInstance);
-    });
+      set(_componentInstances, componentName, newComponentInstance);
+    }
+
     _subjects.instances.next({
       componentName,
-      componentInstances: result,
+      componentInstances: _componentInstances,
     });
-    setComponentInstances(result);
+    setComponentInstances(_componentInstances);
   };
-  const _getComponentInstances = (
-    componentName: string | string[]
-  ): ComponentInstance | ComponentInstance[] => {
+  const _setComponentProps = <TProps extends BaseComponentProps = BaseComponentProps>(
+    componentName: string,
+    componentProps: TProps | ((prevProps: TProps) => TProps)
+  ) => {
+    const prevComponentInstance = get(_componentInstances, componentName);
+    if (prevComponentInstance) {
+      const newComponentProps =
+        typeof componentProps === 'function'
+          ? componentProps(prevComponentInstance.props as TProps)
+          : componentProps;
+      prevComponentInstance.props = newComponentProps;
+
+      set(_componentInstances, componentName, { ...prevComponentInstance });
+    }
+
+    _subjects.instances.next({
+      componentName,
+      componentInstances: _componentInstances,
+    });
+    setComponentInstances(_componentInstances);
+  };
+  const _updatePartialComponentProps = <TProps extends BaseComponentProps = BaseComponentProps>(
+    componentName: string,
+    updatedProps: DeepPartial<TProps>
+  ) => {
+    const prevComponentInstance = get(_componentInstances, componentName);
+    if (prevComponentInstance) {
+      prevComponentInstance.props = produce(prevComponentInstance.props, (draft) => {
+        merge(draft, updatedProps);
+      });
+
+      set(_componentInstances, componentName, { ...prevComponentInstance });
+    }
+
+    _subjects.instances.next({
+      componentName,
+      componentInstances: _componentInstances,
+    });
+    setComponentInstances(_componentInstances);
+  };
+  const _setComponentState = <TState extends ComponentState = ComponentState>(
+    componentName: string,
+    state: TState | ((prevState: TState) => TState)
+  ) => {
+    const prevComponentInstance = get(_componentInstances, componentName);
+    const newState =
+      typeof state === 'function' ? state(prevComponentInstance.state as TState) : state;
+    if (prevComponentInstance) {
+      prevComponentInstance.state = newState;
+
+      set(_componentInstances, componentName, { ...prevComponentInstance });
+    }
+
+    _subjects.instances.next({
+      componentName,
+      componentInstances: _componentInstances,
+    });
+    setComponentInstances(_componentInstances);
+  };
+  const _updatePartialComponentState = <TState extends ComponentState = ComponentState>(
+    componentName: string,
+    updatedState: DeepPartial<TState>
+  ) => {
+    const prevComponentInstance = get(_componentInstances, componentName);
+    if (prevComponentInstance) {
+      prevComponentInstance.state = produce(prevComponentInstance.state, (draft) => {
+        merge(draft, updatedState);
+      });
+
+      set(_componentInstances, componentName, { ...prevComponentInstance });
+    }
+
+    _subjects.instances.next({
+      componentName,
+      componentInstances: _componentInstances,
+    });
+    setComponentInstances(_componentInstances);
+  };
+  const _getComponentInstances = <
+    T extends string | string[],
+    R = T extends string[] ? ComponentInstance[] : ComponentInstance
+  >(
+    componentName: T
+  ): R => {
     if (Array.isArray(componentName)) {
       return componentName.reduce((result, n) => {
         if (get(_componentInstances, n)) {
@@ -118,10 +251,10 @@ export const createUIBuilder = (args: {
         }
 
         return result;
-      }, [] as ComponentInstance[]);
+      }, [] as ComponentInstance[]) as R;
     }
 
-    return get(_componentInstances, componentName);
+    return get(_componentInstances, componentName) as R;
   };
 
   /**
@@ -133,18 +266,67 @@ export const createUIBuilder = (args: {
     parentPaths = [] as ParentPath[]
   ) => {
     componentConfigs.forEach((comConfig) => {
-      const { mappedComponentName: mappedComponentInstanceName } = createMappedComponentName(
+      const { mappedComponentName } = createMappedComponentName(
         comConfig.componentName,
         parentPaths
       );
-      const neededComponentStateProperties: ComponentState = {
-        disabled: false,
-        hidden: false,
+      const neededComponentStateProperties: ComponentState = {};
+
+      const { actions, validations, ...restProps } = comConfig.props ?? ({} as BaseComponentProps);
+
+      /**
+       * get action methods
+       */
+      const actionsFns = Object.entries(actions ?? {}).reduce(
+        (result, [event, config]: [string, ActionConfigs]) => ({
+          ...result,
+          [event]: Object.entries(config ?? {}).reduce((methods, [actionName, actionConfig]) => {
+            const method = _actionMethods[actionName];
+            return {
+              ...methods,
+              [actionName]: (args) =>
+                method?.({
+                  ...args,
+                  config: actionConfig,
+                }),
+            };
+          }, {} as ActionMethods),
+        }),
+        {} as EventActionMethods
+      );
+
+      /**
+       * get lifecycle actions methods
+       */
+      const lifecycleActionsFns = Object.entries(comConfig.lifecycle ?? {}).reduce(
+        (result, [lifecycleName, actConfigs]) => {
+          return {
+            ...result,
+            [lifecycleName]: Object.entries(actConfigs).reduce(
+              (methods, [actionName, actionConfig]) => {
+                const definedMethod = _lifecycleActionMethods[actionName];
+                const method: LifecycleActionMethod = (...args) => definedMethod?.(...args);
+                method.__config = actionConfig;
+                return {
+                  ...methods,
+                  [actionName]: definedMethod ? method : undefined,
+                } as LifecycleActionMethod;
+              },
+              {} as LifecycleActionMethod
+            ),
+          };
+        },
+        {} as LifecycleActionMethods
+      );
+
+      const componentProps: BaseComponentProps = {
+        ...(restProps ?? {}),
+        actions: actionsFns,
       };
 
       const basicComponentControl: ComponentControl = {
-        getCurrent: () => _getComponentInstances(mappedComponentInstanceName) as ComponentInstance,
-        getParents: () => {
+        getCurrent: () => _getComponentInstances(mappedComponentName) as ComponentInstance,
+        getParentComponents: () => {
           let step: string;
           const result: ComponentInstance[] = [];
           parentPaths?.forEach((path) => {
@@ -170,6 +352,15 @@ export const createUIBuilder = (args: {
 
           return result;
         },
+        getParentFormFieldComponents: () => {
+          return basicComponentControl
+            .getParentComponents()
+            .filter(
+              (c) =>
+                c.componentConfig.group === 'form-array-field' ||
+                c.componentConfig.group === 'form-field'
+            );
+        },
         getFormControl: () => {
           const formComponent = parentPaths.find((p) => p.group === 'form');
           if (formComponent) {
@@ -180,57 +371,61 @@ export const createUIBuilder = (args: {
               }
               parentPathsToFormComponentPosition.push(path);
             }
-            const { mappedComponentName: mappedFormComponentInstanceName } =
-              createMappedComponentName(
-                formComponent.componentName,
-                parentPathsToFormComponentPosition
-              );
+            const { mappedComponentName: mappedFormComponentName } = createMappedComponentName(
+              formComponent.componentName,
+              parentPathsToFormComponentPosition
+            );
             const formComponentInstance = _getComponentInstances(
-              mappedFormComponentInstanceName
+              mappedFormComponentName
             ) as ComponentInstance;
 
             return formComponentInstance?.__formControl;
           }
         },
         getComponentInstances: _getComponentInstances,
-        setComponentInstance: _setComponentInstance,
-        updatePartialComponentInstance: _updatePartialComponentInstance,
+        updatePartialComponentProps: _updatePartialComponentProps,
+        setComponentProps: _setComponentProps,
+        updatePartialComponentState: (updatedState) =>
+          _updatePartialComponentState(mappedComponentName, updatedState),
+        setComponentState: (state) => _setComponentState(mappedComponentName, state),
       };
 
       /**
        * Save validation dependencies to use for trigger if dependent fields are changed.
        */
       const saveValidationDependencies = () => {
-        if (Object.keys(comConfig.validations ?? {}).length) {
+        if (Object.keys(validations ?? {}).length) {
           const { mappedFieldName: mappedFieldValueName } = createMappedFieldName(
             comConfig.fieldName!,
             parentPaths
           );
 
-          Object.values(comConfig.validations ?? {}).forEach((validationConfig) => {
-            if (typeof validationConfig === 'boolean') return;
+          Object.values(comConfig.props?.validations ?? {}).forEach(
+            (validationConfig: ValidationConfigMethod | boolean) => {
+              if (typeof validationConfig === 'boolean') return;
 
-            if (validationConfig.when?.dependsOn?.length) {
-              validationConfig.when?.dependsOn.forEach((dependentFieldName) => {
-                const index = _validationDependencies.findIndex((d) =>
-                  compareFieldNames(
-                    d.fieldName,
-                    resolveArrayIndexes(parentPaths, dependentFieldName)
-                  )
-                );
-                if (index > -1) {
-                  _validationDependencies[index].deps = [
-                    ...new Set([..._validationDependencies[index].deps, mappedFieldValueName]),
-                  ];
-                } else {
-                  _validationDependencies.push({
-                    fieldName: resolveArrayIndexes(parentPaths, dependentFieldName),
-                    deps: [mappedFieldValueName],
-                  });
-                }
-              });
+              if (validationConfig.when?.dependsOn?.length) {
+                validationConfig.when?.dependsOn.forEach((dependentFieldName) => {
+                  const index = _validationDependencies.findIndex((d) =>
+                    compareFieldNames(
+                      d.fieldName,
+                      resolveArrayIndexes(parentPaths, dependentFieldName)
+                    )
+                  );
+                  if (index > -1) {
+                    _validationDependencies[index].deps = [
+                      ...new Set([..._validationDependencies[index].deps, mappedFieldValueName]),
+                    ];
+                  } else {
+                    _validationDependencies.push({
+                      fieldName: resolveArrayIndexes(parentPaths, dependentFieldName),
+                      deps: [mappedFieldValueName],
+                    });
+                  }
+                });
+              }
             }
-          });
+          );
         }
       };
 
@@ -238,9 +433,11 @@ export const createUIBuilder = (args: {
        * For UI components
        */
       if (comConfig.group === 'ui') {
-        set(result, mappedComponentInstanceName, {
-          __state: neededComponentStateProperties,
+        set(result, mappedComponentName, {
+          state: neededComponentStateProperties,
+          props: componentProps,
           componentConfig: comConfig,
+          __lifecycle: lifecycleActionsFns,
           __control: basicComponentControl,
           parentPaths,
         } as ComponentInstance);
@@ -261,12 +458,35 @@ export const createUIBuilder = (args: {
          * For FORM components
          */
       } else if (comConfig.group === 'form') {
-        set(result, mappedComponentInstanceName, {
-          __state: neededComponentStateProperties,
+        /**
+         * Get validators
+         */
+        const validators = Object.entries(
+          (comConfig.props?.validations ?? {}) as Record<
+            string,
+            ValidationConfig[keyof ValidationConfig]
+          >
+        ).reduce((result, [key, config]) => {
+          const definedMethod = _validationMethods[key];
+          const method: ValidationMethod = (...args) => definedMethod?.(...args);
+          method.__config = config;
+          return {
+            ...result,
+            [key]: config && definedMethod ? method : undefined,
+          };
+        }, {} as ValidationMethods);
+
+        set(result, mappedComponentName, {
+          state: neededComponentStateProperties,
           componentConfig: comConfig,
+          props: {
+            ...componentProps,
+            validations: validators,
+          },
           __formControl: createFormControl({
             mode: 'all',
           }),
+          __lifecycle: lifecycleActionsFns,
           __control: basicComponentControl,
           parentPaths,
         } as ComponentInstance);
@@ -291,9 +511,11 @@ export const createUIBuilder = (args: {
         if (!formComponent)
           throw Error('Form field component must be wrapped inside form component');
 
-        set(result, mappedComponentInstanceName, {
-          __state: neededComponentStateProperties,
+        set(result, mappedComponentName, {
+          state: neededComponentStateProperties,
+          props: componentProps,
           componentConfig: comConfig,
+          __lifecycle: lifecycleActionsFns,
           __control: basicComponentControl,
           parentPaths,
         } as ComponentInstance);
@@ -345,7 +567,7 @@ export const createUIBuilder = (args: {
 
         const { getValues, control, reset } = formComponentInstance.__formControl!;
         // Init defaultValue
-        reset(set(getValues() ?? {}, mappedFieldValueName, comConfig.defaultValue));
+        reset(set(getValues() ?? {}, mappedFieldValueName, comConfig.props?.defaultValue));
 
         const arrayField = createFieldArray({
           name: mappedFieldValueName,
@@ -357,7 +579,7 @@ export const createUIBuilder = (args: {
           replace: (value) => {
             const currentArrayInstance = get(
               _componentInstances,
-              mappedComponentInstanceName
+              mappedComponentName
             ) as ArrayFieldComponentInstance;
             const arrayValue = convertToArrayPayload(value);
             if (arrayValue.length) {
@@ -384,13 +606,13 @@ export const createUIBuilder = (args: {
                   });
               });
               _subjects.instances.next({
-                componentName: mappedComponentInstanceName,
+                componentName: mappedComponentName,
                 componentInstances: result,
               });
               setComponentInstances(result);
             } else {
-              _setComponentInstance(mappedComponentInstanceName, {
-                ...get(_componentInstances, mappedComponentInstanceName),
+              _setComponentInstance(mappedComponentName, {
+                ...get(_componentInstances, mappedComponentName),
                 __children: [],
               });
             }
@@ -398,7 +620,7 @@ export const createUIBuilder = (args: {
           prepend: (value, options) => {
             const currentArrayInstance = get(
               _componentInstances,
-              mappedComponentInstanceName
+              mappedComponentName
             ) as ArrayFieldComponentInstance;
 
             arrayField.prepend?.(value, options);
@@ -431,14 +653,14 @@ export const createUIBuilder = (args: {
             );
 
             _subjects.instances.next({
-              componentName: mappedComponentInstanceName,
+              componentName: mappedComponentName,
               componentInstances: _componentInstances,
             });
           },
           append: (appendValue, options) => {
             const currentArrayInstance = get(
               _componentInstances,
-              mappedComponentInstanceName
+              mappedComponentName
             ) as ArrayFieldComponentInstance;
 
             arrayField.append?.(appendValue, options);
@@ -461,7 +683,7 @@ export const createUIBuilder = (args: {
               );
             });
             _subjects.instances.next({
-              componentName: mappedComponentInstanceName,
+              componentName: mappedComponentName,
               componentInstances: _componentInstances,
             });
           },
@@ -470,7 +692,7 @@ export const createUIBuilder = (args: {
 
             const currentArrayInstance = get(
               _componentInstances,
-              mappedComponentInstanceName
+              mappedComponentName
             ) as ArrayFieldComponentInstance;
 
             arrayField.remove?.(index);
@@ -480,7 +702,7 @@ export const createUIBuilder = (args: {
             }
 
             _subjects.instances.next({
-              componentName: mappedComponentInstanceName,
+              componentName: mappedComponentName,
               componentInstances: _componentInstances,
             });
 
@@ -491,7 +713,7 @@ export const createUIBuilder = (args: {
 
             const currentArrayInstance = get(
               _componentInstances,
-              mappedComponentInstanceName
+              mappedComponentName
             ) as ArrayFieldComponentInstance;
             arrayField.insert?.(atIndex, value, options);
             const formerChildren = currentArrayInstance.__children?.slice(0, atIndex) ?? [];
@@ -524,7 +746,7 @@ export const createUIBuilder = (args: {
             ];
 
             _subjects.instances.next({
-              componentName: mappedComponentInstanceName,
+              componentName: mappedComponentName,
               componentInstances: _componentInstances,
             });
           },
@@ -533,7 +755,7 @@ export const createUIBuilder = (args: {
 
             const currentArrayInstance = get(
               _componentInstances,
-              mappedComponentInstanceName
+              mappedComponentName
             ) as ArrayFieldComponentInstance;
             arrayField.swap?.(indexA, indexB);
 
@@ -545,7 +767,7 @@ export const createUIBuilder = (args: {
             }
 
             _subjects.instances.next({
-              componentName: mappedComponentInstanceName,
+              componentName: mappedComponentName,
               componentInstances: _componentInstances,
             });
           },
@@ -554,7 +776,7 @@ export const createUIBuilder = (args: {
 
             const currentArrayInstance = get(
               _componentInstances,
-              mappedComponentInstanceName
+              mappedComponentName
             ) as ArrayFieldComponentInstance;
             arrayField.move?.(from, to);
 
@@ -563,14 +785,14 @@ export const createUIBuilder = (args: {
             }
 
             _subjects.instances.next({
-              componentName: mappedComponentInstanceName,
+              componentName: mappedComponentName,
               componentInstances: _componentInstances,
             });
           },
           update: (index, updateValue) => {
             const currentArrayInstance = get(
               _componentInstances,
-              mappedComponentInstanceName
+              mappedComponentName
             ) as ArrayFieldComponentInstance;
 
             if (currentArrayInstance.__children?.[index]) {
@@ -593,14 +815,16 @@ export const createUIBuilder = (args: {
             }
 
             _subjects.instances.next({
-              componentName: mappedComponentInstanceName,
+              componentName: mappedComponentName,
               componentInstances: _componentInstances,
             });
           },
         } as ComponentControl;
-        set(result, mappedComponentInstanceName, {
-          __state: neededComponentStateProperties,
+        set(result, mappedComponentName, {
+          state: neededComponentStateProperties,
+          props: componentProps,
           componentConfig: comConfig,
+          __lifecycle: lifecycleActionsFns,
           __control: arrayComponentControl,
           parentPaths,
         } as ComponentInstance);
@@ -631,10 +855,12 @@ export const createUIBuilder = (args: {
   // const r = detectAndGenerateCircularDependencyGraph(_validationDependencies);
 
   return {
+    _setComponentProps,
     _setComponentInstance,
     _getComponentInstances,
     _forceSubscribe,
     _updatePartialComponentInstance,
+    _updatePartialComponentProps,
     get subjects() {
       return _subjects;
     },
@@ -643,6 +869,12 @@ export const createUIBuilder = (args: {
     },
     get validationDependencies() {
       return _validationDependencies;
+    },
+    get actionMethods() {
+      return _actionMethods;
+    },
+    get validationMethods() {
+      return _validationMethods;
     },
   };
 };

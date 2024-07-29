@@ -8,7 +8,7 @@ const TextComponent: React.FunctionComponent<TextComponentProps> = (props) => {
   const { componentConfig, parentPaths: parentPaths, index, parentId } = props;
   const { isBuildingMode } = usePageBuilderContext();
 
-  useUIComponent({
+  const { componentInstance } = useUIComponent({
     componentConfig,
     parentPaths: parentPaths,
   });
@@ -21,7 +21,7 @@ const TextComponent: React.FunctionComponent<TextComponentProps> = (props) => {
         data={componentConfig}
         parentId={parentId}>
         <h1 className={cn('scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl')}>
-          {componentConfig.props?.label}
+          {componentInstance.props?.label}
         </h1>
       </DragDropWrapper>
     );
@@ -29,7 +29,7 @@ const TextComponent: React.FunctionComponent<TextComponentProps> = (props) => {
 
   return (
     <h1 className={cn('scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl')}>
-      {componentConfig.props?.label}
+      {componentInstance.props?.label}
     </h1>
   );
 };

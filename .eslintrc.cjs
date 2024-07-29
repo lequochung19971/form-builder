@@ -15,5 +15,11 @@ module.exports = {
     '@typescript-eslint/no-unused-vars': 'warn',
     '@typescript-eslint/ban-types': 'warn',
     'react-refresh/only-export-components': 'off',
+    'react-hooks/exhaustive-deps': [
+      'warn',
+      {
+        additionalHooks: '(useDidUpdate|useDidMountAndUpdate)',
+      },
+    ],
   },
 };

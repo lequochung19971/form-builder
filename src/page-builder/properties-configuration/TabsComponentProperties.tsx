@@ -6,7 +6,7 @@ import { useFieldArray, useForm, UseFormReturn } from 'react-hook-form';
 import { v4 as uuidV4 } from 'uuid';
 import { InputFormField } from './form-fields/InputFormField';
 import { BaseComponentProperties } from './types';
-import { ComponentType } from '@/ui-builder/types';
+import { ComponentType } from '../types';
 
 const Tabs: React.FunctionComponent<{ control: UseFormReturn['control'] }> = ({ control }) => {
   const { fields, append, remove } = useFieldArray({

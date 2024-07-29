@@ -47,14 +47,14 @@ export const ArrayComponent: React.FunctionComponent<ArrayComponentProps> = (pro
       </DragDropWrapper>
     );
   }
-
+  console.log(fields);
   return (
     <div className="w-full flex flex-col space-y-4">
       {fields?.map((field, fieldIndex) => (
-        <React.Fragment key={field.id}>
-          {componentConfig.components?.map((com, index) => (
+        <React.Fragment key={`${field.id}-${fieldIndex}`}>
+          {componentConfig.components?.map((com) => (
             <ComponentItem
-              key={com.id}
+              key={`${field.id}-${com.id}`}
               componentConfig={com}
               index={index}
               parentId={componentConfig.id}

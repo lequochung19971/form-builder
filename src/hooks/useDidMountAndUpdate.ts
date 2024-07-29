@@ -3,7 +3,10 @@ import { useDidMount } from './useDidMount';
 import { useWillUnmount } from './useWillUnmount';
 import { useRefContinuousUpdate } from './useRefContinuousUpdate';
 
-export function useDidUpdate(callback: EffectCallback, dependencies?: DependencyList): void {
+export function useDidMountAndUpdate(
+  callback: (didMount: boolean) => void,
+  dependencies?: DependencyList
+): void {
   const hasMountedRef = useRef<boolean>(false);
   const memorizedCallback = useRefContinuousUpdate(callback);
 
@@ -12,7 +15,7 @@ export function useDidUpdate(callback: EffectCallback, dependencies?: Dependency
       return [dependencies];
     } else if (Array.isArray(dependencies) && dependencies.length === 0) {
       console.warn(
-        'Using [] as the second argument makes useDidUpdate a noop. The second argument should either be `undefined` or an array of length greater than 0.'
+        'Using [] as the second argument makes useDidMountAndUpdate a noop. The second argument should either be `undefined` or an array of length greater than 0.'
       );
     }
 
@@ -20,9 +23,7 @@ export function useDidUpdate(callback: EffectCallback, dependencies?: Dependency
   }, [dependencies]);
 
   useEffect(() => {
-    if (hasMountedRef.current) {
-      memorizedCallback.current?.();
-    }
+    memorizedCallback.current?.(hasMountedRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, internalConditions);
 

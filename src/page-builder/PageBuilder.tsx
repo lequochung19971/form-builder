@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { ComponentConfig, ParentPath, ComponentType } from '@/ui-builder/types';
+import { ComponentConfig, ParentPath } from '@/ui-builder/types';
 import { useUIBuilder } from '@/ui-builder/useUIBuilder';
 import { cn } from '@/utils/uiUtils';
 import {
@@ -30,6 +30,7 @@ import { CustomMouseSensor, CustomPointerSensor } from './dnd/customSensor';
 import { ComponentPropertiesDialog } from './properties-configuration/ComponentPropertiesDialog';
 import { addItemAtIndex, flattenTree, moveItemToIndex, removeItem, updateItem } from './utils';
 import { UIBuilderProvider } from '@/ui-builder/UIBuilderContext';
+import { ComponentType } from './types';
 
 type PageBuilderContextValue = {
   isBuildingMode: boolean;
@@ -262,9 +263,12 @@ export const PageBuilder: React.FunctionComponent<{
   const handleOnSaveProperties = (values: Partial<ComponentConfig>) => {
     const currentComponent = flattenedData.find((d) => d.id === values.id);
 
-    const config = {
+    const config: Partial<ComponentConfig> = {
       ...values,
-      defaultValue: values.group === 'form-array-field' ? [{}] : undefined,
+      props: {
+        ...(values.props ?? {}),
+        defaultValue: values.group === 'form-array-field' ? [{}] : undefined,
+      },
     };
 
     // Add New

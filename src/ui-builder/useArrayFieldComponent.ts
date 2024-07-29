@@ -1,22 +1,17 @@
 import { useFormSubscribe } from '@/form/useFormSubscribe';
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { FieldValues, InternalFieldName, get } from 'react-hook-form';
 
 import { ArrayFieldComponentInstance, ComponentProps } from './types';
 import { useUIBuilderContext } from './UIBuilderContext';
-import { useWatchComponentInstance } from './useWatchComponentInstance';
-import {
-  createMappedComponentName,
-  createMappedFieldName,
-  generateValidationMethods,
-} from './utils';
+import { useBaseComponent } from './useBaseComponent';
+import { createMappedFieldName, generateValidationMethods } from './utils';
 
 export const useArrayFieldComponent = (props: ComponentProps) => {
-  const { componentConfig, parentPaths: parentPaths } = props;
+  const { componentConfig } = props;
+  const { actions, componentInstance, mappedComponentName } = useBaseComponent(props);
 
-  const { validations: validations = {} } = componentConfig;
-
-  const { formMethods, validationMethods } = useUIBuilderContext();
+  const { formMethods } = useUIBuilderContext();
 
   if (!formMethods) {
     throw Error('Must be wrapped by form component');
@@ -24,51 +19,37 @@ export const useArrayFieldComponent = (props: ComponentProps) => {
 
   const { control } = formMethods;
 
-  const { mappedFieldName: mappedFieldValueName } = createMappedFieldName(
+  const { mappedFieldName } = createMappedFieldName(
     componentConfig.fieldName!,
-    parentPaths
+    componentInstance.parentPaths
   );
-
-  const { mappedComponentName: mappedComponentInstanceName } = createMappedComponentName(
-    componentConfig.componentName,
-    parentPaths
-  );
-
-  const componentInstance = useWatchComponentInstance({
-    componentName: mappedComponentInstanceName,
-  });
-
-  if (!componentInstance) {
-    throw new Error(`There is no componentInstance: ${mappedComponentInstanceName}`);
-  }
 
   const validate = useMemo(
     () =>
       generateValidationMethods({
         componentInstance,
         formMethods,
-        parentPaths,
-        validations,
-        validationMethods,
+        parentPaths: componentInstance.parentPaths ?? [],
+        validationMethods: componentInstance.props.validations ?? {},
       }),
-    [componentInstance, formMethods, parentPaths, validationMethods, validations]
+    [componentInstance, formMethods]
   );
 
   validate &&
-    control.register(mappedFieldValueName, {
+    control.register(mappedFieldName, {
       validate,
     });
 
   const [fields, setFields] = React.useState(
-    control._getFieldArray(mappedFieldValueName) as Record<string, string>[]
+    control._getFieldArray(mappedFieldName) as Record<string, string>[]
   );
 
   const _fieldsRef = React.useRef(fields);
-  const _name = React.useRef(mappedFieldValueName);
+  const _name = React.useRef(mappedFieldName);
 
-  _name.current = mappedFieldValueName;
+  _name.current = mappedFieldName;
   _fieldsRef.current = fields;
-  control._names.array.add(mappedFieldValueName);
+  control._names.array.add(mappedFieldName);
 
   React.useEffect(() => {
     const observer = (updateFields: Record<string, string>[]) => {
@@ -80,12 +61,6 @@ export const useArrayFieldComponent = (props: ComponentProps) => {
     };
   }, [componentInstance]);
 
-  useEffect(() => {
-    return () => {
-      console.log('unmount', mappedComponentInstanceName);
-    };
-  }, [mappedComponentInstanceName]);
-
   useFormSubscribe({
     next: ({
       values,
@@ -94,8 +69,8 @@ export const useArrayFieldComponent = (props: ComponentProps) => {
       values?: FieldValues;
       name?: InternalFieldName;
     }) => {
-      if (fieldArrayName === mappedFieldValueName || !fieldArrayName) {
-        const fieldValues = get(values, mappedFieldValueName);
+      if (fieldArrayName === mappedFieldName || !fieldArrayName) {
+        const fieldValues = get(values, mappedFieldName);
         if (Array.isArray(fieldValues)) {
           componentInstance.__control.replace?.(fieldValues);
         }
@@ -110,9 +85,9 @@ export const useArrayFieldComponent = (props: ComponentProps) => {
 
   return {
     fields,
-    mappedComponentInstanceName,
-    mappedFieldValueName,
-    parentPaths,
+    mappedComponentName,
+    mappedFieldValueName: mappedFieldName,
     componentInstance: componentInstance as ArrayFieldComponentInstance,
+    actions,
   };
 };

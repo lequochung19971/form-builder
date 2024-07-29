@@ -9,7 +9,7 @@ const ButtonComponent: React.FunctionComponent<ButtonComponentProps> = (props) =
 
   const { isBuildingMode } = usePageBuilderContext();
 
-  const { actions } = useUIComponent({
+  const { actions, componentInstance } = useUIComponent({
     componentConfig,
     parentPaths: parentPaths,
   });
@@ -22,7 +22,7 @@ const ButtonComponent: React.FunctionComponent<ButtonComponentProps> = (props) =
         data={componentConfig}
         parentId={parentId}>
         <Button data-no-dnd onClick={actions.onClick}>
-          {componentConfig.props?.label}
+          {componentInstance.props?.label}
         </Button>
       </DragDropWrapper>
     );
@@ -30,7 +30,7 @@ const ButtonComponent: React.FunctionComponent<ButtonComponentProps> = (props) =
 
   return (
     <Button data-no-dnd onClick={actions.onClick}>
-      {componentConfig.props?.label}
+      {componentInstance.props?.label}
     </Button>
   );
 };

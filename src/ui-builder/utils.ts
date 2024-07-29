@@ -1,17 +1,16 @@
 import convertToArrayPayload from '@/utils/convertToArrayPayload';
-import { isUndefined } from 'lodash';
+import { forEach, get, isUndefined } from 'lodash';
+import { SyntheticEvent } from 'react';
+import { UseFormReturn } from 'react-hook-form';
 import {
-  ActionConfigs,
   ActionMethods,
-  ComponentActions,
   ComponentInstance,
+  EventActionMethods,
   ParentPath,
   ValidationConfig,
   ValidationMethods,
   WhenCondition,
 } from './types';
-import { UseFormReturn } from 'react-hook-form';
-import { SyntheticEvent } from 'react';
 
 export const createMappedFieldName = (current: string, parentPaths = [] as ParentPath[]) => {
   const parentName = parentPaths.reduce((result, path) => {
@@ -193,7 +192,7 @@ export function matchesPatternFieldName(pattern: string, fieldName: string): boo
   return regex.test(fieldName);
 }
 
-export function resolveArrayIndices<
+export function resolveArrayIndexesForFieldName<
   T extends string | string[],
   R = T extends string[] ? string[] : string
 >(parentPaths: ParentPath[], fieldName: T) {
@@ -209,6 +208,29 @@ export function resolveArrayIndices<
   return fieldName.map((name) => {
     return parentPaths.reduce((result, path) => {
       if (path.fieldName && typeof path.index === 'number') {
+        result = result.replace('[]', `[${path.index}]`);
+      }
+      return result;
+    }, name);
+  }) as R;
+}
+
+export function resolveArrayIndexesForComponentName<
+  T extends string | string[],
+  R = T extends string[] ? string[] : string
+>(parentPaths: ParentPath[], componentName: T) {
+  if (typeof componentName === 'string') {
+    return parentPaths.reduce((result, path) => {
+      if (path.componentName && typeof path.index === 'number') {
+        result = result.replace('[]', `[${path.index}]`);
+      }
+      return result;
+    }, componentName as string) as R;
+  }
+
+  return componentName.map((name) => {
+    return parentPaths.reduce((result, path) => {
+      if (path.componentName && typeof path.index === 'number') {
         result = result.replace('[]', `[${path.index}]`);
       }
       return result;
@@ -239,24 +261,21 @@ export const executeWhenCondition = (
 
 export const generateValidationMethods = ({
   formMethods,
-  validations,
   componentInstance,
   parentPaths,
   validationMethods,
 }: {
-  validations: ValidationConfig;
   formMethods: UseFormReturn;
   parentPaths: ParentPath[];
   componentInstance: ComponentInstance;
   validationMethods: ValidationMethods;
 }) =>
-  Object.entries(validations).reduce((result, [methodName, methodConfig]) => {
-    const validator = validationMethods[methodName as keyof typeof validationMethods];
+  Object.entries(validationMethods).reduce((result, [methodName, validator]) => {
     if (validator) {
       result = {
         ...result,
         [methodName]: (fieldValue: unknown, formValues: Record<string, unknown>) => {
-          if (typeof methodConfig === 'boolean') {
+          if (typeof validator.__config === 'boolean') {
             return validator({
               fieldValue,
               formValues,
@@ -264,13 +283,15 @@ export const generateValidationMethods = ({
             });
           }
 
-          const dependentFieldValues = methodConfig.when?.dependsOn.length
-            ? formMethods.getValues(resolveArrayIndices(parentPaths, methodConfig.when.dependsOn))
+          const dependentFieldValues = validator.__config?.when?.dependsOn.length
+            ? formMethods.getValues(
+                resolveArrayIndexesForFieldName(parentPaths, validator.__config.when.dependsOn)
+              )
             : undefined;
 
           if (
-            methodConfig.when?.conditions &&
-            executeWhenCondition(dependentFieldValues, methodConfig.when.conditions)
+            validator.__config.when?.conditions &&
+            executeWhenCondition(dependentFieldValues, validator.__config.when.conditions)
           )
             return true;
 
@@ -279,8 +300,8 @@ export const generateValidationMethods = ({
             formValues,
             componentInstance,
             dependentFieldValues,
-            message: methodConfig.message,
-            params: methodConfig.params,
+            message: validator.__config.message,
+            params: validator.__config.params,
           });
         },
       };
@@ -290,32 +311,50 @@ export const generateValidationMethods = ({
   }, {});
 
 export const generateActions = ({
-  actionMethods,
-  actionsConfigs,
+  eventActionMethods,
   componentInstance,
 }: {
-  actionsConfigs: ComponentActions;
+  eventActionMethods: EventActionMethods;
   componentInstance: ComponentInstance;
-  actionMethods: ActionMethods;
 }) => {
-  const executeActions = (event: SyntheticEvent, actionConfigs: ActionConfigs) => {
-    Object.entries(actionConfigs).forEach(([methodName, methodConfig]) => {
-      actionMethods[methodName]?.({
+  const executeActions = (event: SyntheticEvent, methods: ActionMethods) => {
+    Object.values(methods).forEach((method) => {
+      method?.({
         event,
         componentInstance,
-        config: methodConfig,
       });
     });
   };
 
+  return Object.entries(eventActionMethods).reduce(
+    (result, [key, method]) => ({
+      ...result,
+      [key]: method ? (event: React.SyntheticEvent) => executeActions(event, method) : undefined,
+    }),
+    {} as Record<keyof EventActionMethods, (event: React.SyntheticEvent) => void>
+  );
+};
+
+export const updateAndCompareDependencies = ({
+  values,
+  depConfigs: depsConfigs,
+  prevDepValues,
+}: {
+  depConfigs: string[];
+  values: Record<string, any>;
+  prevDepValues: any[];
+}) => {
+  let isDifference = false;
+  const newDepValues = (depsConfigs ?? []).reduce(
+    (deps, key) => deps.concat(get(values, key)),
+    [] as any[]
+  );
+
+  isDifference = (prevDepValues ?? []).some((pd, index) => pd !== newDepValues[index]);
+
   return {
-    onClick: (event: React.SyntheticEvent) =>
-      actionsConfigs.click && executeActions(event, actionsConfigs.click),
-    onChange: (event: React.SyntheticEvent) =>
-      actionsConfigs.change && executeActions(event, actionsConfigs.change),
-    onBlur: (event: React.SyntheticEvent) =>
-      actionsConfigs.blur && executeActions(event, actionsConfigs.blur),
-    onFocus: (event: React.SyntheticEvent) =>
-      actionsConfigs.focus && executeActions(event, actionsConfigs.focus),
+    isDifference,
+    prevValues: prevDepValues,
+    newValues: isDifference ? newDepValues : prevDepValues,
   };
 };

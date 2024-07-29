@@ -11,7 +11,7 @@ export const InputFieldComponent: React.FunctionComponent<InputFieldComponentPro
   const { componentConfig, parentPaths: parentPaths, index, parentId } = props;
   const { isBuildingMode } = usePageBuilderContext();
 
-  const { field } = useFormFieldComponent({
+  const { field, componentInstance } = useFormFieldComponent({
     componentConfig,
     parentPaths: parentPaths,
   });
@@ -19,7 +19,12 @@ export const InputFieldComponent: React.FunctionComponent<InputFieldComponentPro
   const input = (
     <div className="flex flex-col w-full space-y-2 z-10">
       <Label>{componentConfig.componentName}</Label>
-      <Input data-no-dnd {...field} placeholder={`Enter a ${componentConfig.componentName}`} />
+      <Input
+        data-no-dnd
+        {...field}
+        disabled={componentInstance.props.visibility?.disabled}
+        placeholder={`Enter a ${componentConfig.componentName}`}
+      />
     </div>
   );
 

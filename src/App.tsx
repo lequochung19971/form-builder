@@ -1,17 +1,20 @@
 /** @jsx jsx */
 import { useState } from 'react';
 import { PageBuilder } from './page-builder/PageBuilder';
-import { ComponentConfig, ComponentType } from './ui-builder/types';
+import { ComponentConfig } from './ui-builder/types';
 import { useForm } from 'react-hook-form';
 import { Input } from './components/ui/input';
+import { ComponentType } from './page-builder/types';
 
-const components: ComponentConfig[] = [
+const components: ComponentConfig<ComponentType>[] = [
   {
     id: 'text-dcfdadc8-8723-4f01-a49d-50025081e2d8',
     componentName: 'header1',
     type: ComponentType.TEXT,
-    label: 'Demo UI Builder',
     group: 'ui',
+    props: {
+      label: 'Demo UI Builder',
+    },
   },
   {
     id: 'form-6a33ba6f-9393-4190-a1d9-8fa7f04729a0',
@@ -24,8 +27,10 @@ const components: ComponentConfig[] = [
         componentName: 'array',
         fieldName: 'array',
         type: ComponentType.ARRAY_CONTAINER,
-        defaultValue: [{}],
         group: 'form-array-field',
+        props: {
+          defaultValue: [{}],
+        },
         components: [
           {
             id: 'inputField-6dc1deb7-f0c7-406d-b55a-7c29f1ba6c17',
@@ -33,11 +38,13 @@ const components: ComponentConfig[] = [
             type: ComponentType.INPUT_FIELD,
             fieldName: 'firstName',
             group: 'form-field',
-            validations: {
-              required: {
-                when: {
-                  dependsOn: ['array[].lastName'],
-                  conditions: {},
+            props: {
+              validations: {
+                required: {
+                  when: {
+                    dependsOn: ['array[].lastName'],
+                    conditions: {},
+                  },
                 },
               },
             },
@@ -71,11 +78,13 @@ const components: ComponentConfig[] = [
         type: ComponentType.INPUT_FIELD,
         fieldName: 'firstName',
         group: 'form-field',
-        validations: {
-          required: {
-            when: {
-              dependsOn: ['lastName'],
-              conditions: {},
+        props: {
+          validations: {
+            required: {
+              when: {
+                dependsOn: ['lastName'],
+                conditions: {},
+              },
             },
           },
         },
@@ -86,11 +95,13 @@ const components: ComponentConfig[] = [
         type: ComponentType.INPUT_FIELD,
         fieldName: 'lastName',
         group: 'form-field',
-        validations: {
-          required: {
-            when: {
-              dependsOn: ['firstName'],
-              conditions: {},
+        props: {
+          validations: {
+            required: {
+              when: {
+                dependsOn: ['firstName'],
+                conditions: {},
+              },
             },
           },
         },
@@ -115,11 +126,16 @@ const components: ComponentConfig[] = [
         type: ComponentType.BUTTON,
         fieldName: 'fullName',
         group: 'ui',
-        label: 'Click Here',
-        actions: {
-          click: {
-            showComponent: {
-              targetComponentName: 'array',
+        props: {
+          label: 'Click Here',
+          actions: {
+            onClick: {
+              appendRow: {
+                target: 'form.__children.array',
+                value: {
+                  firstName: '',
+                },
+              },
             },
           },
         },

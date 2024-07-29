@@ -1,29 +1,28 @@
-module '@/ui-builder/types' {
-  export enum ComponentType {
-    /**
-     * UI components
-     */
-    INPUT = 'input',
-    BUTTON = 'button',
-    CONTAINER = 'container',
-    PAGE = 'page',
-    FORM = 'form',
-    DIALOG = 'dialog',
-    TABS = 'tabs',
-    TAB = 'tab',
-    COLUMN = 'column',
-    TEXT = 'text',
+import {
+  EventActionConfigs as OriginalEventActionConfigs,
+  ActionConfigs as OriginalActionConfigs,
+  ValidationConfig as OriginalValidationConfig,
+  LifecycleActionConfigs as OriginalLifecycleActionConfigs,
+  EffectActionConfigs as OriginalEffectActionConfigs,
+  EffectActionConfig,
+} from '@/ui-builder/types';
 
-    /**
-     * Data components
-     * Components are used inside Form component and used to collected data
-     */
-    INPUT_FIELD = 'inputField',
-    OBJECT_CONTAINER = 'objectContainer',
-    ARRAY_CONTAINER = 'arrayContainer',
-    SUBMIT_BUTTON = 'submitButton',
-    DATA_TABLE = 'dataTable',
+declare module '@/ui-builder/types' {
+  export interface EventActionConfigs extends OriginalEventActionConfigs {
+    custom?: ActionConfigs;
+  }
+  export interface ActionConfigs extends OriginalActionConfigs {
+    doSomething?: boolean;
+  }
+
+  export interface LifecycleActionConfigs extends OriginalLifecycleActionConfigs {
+    testAction?: any;
+  }
+  export interface ValidationConfig extends OriginalValidationConfig {
+    validateSomething?: any;
+  }
+  export interface EffectActionConfigs extends OriginalEffectActionConfigs {
+    load?: EffectActionConfig;
   }
 }
-
 export * from '@/ui-builder/types';

@@ -4,7 +4,7 @@ import { ArrayComponentProperties } from './ArrayComponentProperties';
 import { BasicComponentProperties } from './BasicComponentProperties';
 import { TabsComponentProperties } from './TabsComponentProperties';
 import { BaseComponentProperties } from './types';
-import { ComponentType } from '@/ui-builder/types';
+import { ComponentType } from '../types';
 
 type ComponentPropertiesDialogProps = BaseComponentProperties & {
   open?: boolean;
