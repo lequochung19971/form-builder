@@ -3,102 +3,58 @@ import { useDidMountAndUpdate } from '@/hooks/useDidMountAndUpdate';
 import { useDidUpdate } from '@/hooks/useDidUpdate';
 import { useRefContinuousUpdate } from '@/hooks/useRefContinuousUpdate';
 import { useWillUnmount } from '@/hooks/useWillUnmount';
-import { set } from 'lodash';
-import { useCallback, useMemo, useRef } from 'react';
 import {
-  BaseComponentProps,
   ComponentInstance,
-  ComponentProps,
-  ComponentState,
-  LifecycleActionMethod,
-  LifecycleConfigs,
   LifecycleName,
-} from './types';
-import { useBaseComponent } from './useBaseComponent';
+  BaseComponentProps,
+  LifecycleConfigs,
+  LifecycleActionMethod,
+} from '@/ui-builder/types';
+import { set } from 'lodash';
+import { useMemo, useRef, useCallback, ComponentState } from 'react';
+import { UseFormReturn, useWatch } from 'react-hook-form';
 import { updateAndCompareDependencies } from './utils';
-
-type UseUIComponentComputedProps = {
+type UseFormFieldLifecycleProps = {
+  formMethods: UseFormReturn;
   componentInstance: ComponentInstance;
 };
-const useUIComponentComputed = ({ componentInstance }: UseUIComponentComputedProps) => {
-  /**
-   * ======================= Handle computed methods =======================
-   */
-  const computed = useRefContinuousUpdate(componentInstance.computed);
-  const _memorizedComputedDependencies = useRef<Record<string, { props: any[]; state: any[] }>>({});
-  const _memorizedComputedResult = useRef<Record<string, any>>({});
+export const useFormFieldLifecycle = ({
+  componentInstance,
+  formMethods,
+}: UseFormFieldLifecycleProps) => {
+  const lifecycle = useRefContinuousUpdate(componentInstance.lifecycle);
 
-  const computedResults = useMemo(() => {
-    _memorizedComputedResult.current = Object.entries(computed.current ?? {}).reduce(
-      (computedResult, [computedName, computedMethod]) => {
-        const {
-          isDifference: isDifferenceProps,
-          prevValues: prevProps,
-          newValues: newProps,
-        } = updateAndCompareDependencies({
-          values: componentInstance.props,
-          depConfigs: computedMethod?.__config.dependencies?.props ?? [],
-          prevDepValues: _memorizedComputedDependencies.current?.[computedName]?.props,
-        });
-
-        const {
-          isDifference: isDifferenceState,
-          prevValues: prevState,
-          newValues: newState,
-        } = updateAndCompareDependencies({
-          values: componentInstance.state,
-          depConfigs: computedMethod?.__config.dependencies?.state ?? [],
-          prevDepValues: _memorizedComputedDependencies.current?.[computedName]?.state,
-        });
-
-        if (isDifferenceProps || isDifferenceState) {
-          set(_memorizedComputedDependencies.current, `${computedName}.props`, newProps);
-          set(_memorizedComputedDependencies.current, `${computedName}.state`, newState);
-          return {
-            ...computedResult,
-            [computedName]: computedMethod?.({
-              params: computedMethod?.__config.params,
-              componentInstance,
-              dependencies: {
-                props: {
-                  new: newProps,
-                  previous: prevProps,
-                },
-                state: {
-                  new: newState,
-                  previous: prevState,
-                },
-              },
-            }),
-          };
-        }
-
-        return computedResult;
+  const allLifecycleFieldsDependencies = useMemo(() => {
+    const fieldsDependencies = Object.values(lifecycle.current ?? {}).reduce(
+      (result, lifecycleActions) => {
+        return result.concat(
+          ...Object.values(lifecycleActions ?? {}).reduce(
+            (res, actionMethod) =>
+              res.concat(...(actionMethod?.__config.dependencies?.fields ?? [])),
+            [] as string[]
+          )
+        );
       },
-      _memorizedComputedResult.current
+      [] as string[]
     );
-    return _memorizedComputedResult.current;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [componentInstance.props, componentInstance.state]);
-  // =====================================================================
 
-  return computedResults;
-};
+    // Remove duplicated fields
+    return [...new Set(fieldsDependencies)];
+  }, [lifecycle]);
 
-type UseUIComponentLifecycleProps = {
-  componentInstance: ComponentInstance;
-};
-const useUIComponentLifecycle = ({ componentInstance }: UseUIComponentLifecycleProps) => {
-  const _memorizedLifecycleDependencies = useRef<
-    Record<LifecycleName, Record<string, { props: any[]; state: any[] }>>
+  const allLifecycleFieldsDependenciesValue = useWatch({
+    control: formMethods.control,
+    name: allLifecycleFieldsDependencies,
+  });
+
+  const _memorizedDependencies = useRef<
+    Record<LifecycleName, Record<string, { props?: any[]; state?: any[]; fields?: any[] }>>
   >({
     mount: {},
     mountAndUpdate: {},
     unmount: {},
     update: {},
   });
-
-  const lifecycle = useRefContinuousUpdate(componentInstance.lifecycle);
 
   const updateAndCompareProps = useCallback(
     ({
@@ -115,16 +71,11 @@ const useUIComponentLifecycle = ({ componentInstance }: UseUIComponentLifecycleP
       const { isDifference, prevValues, newValues } = updateAndCompareDependencies({
         values: props,
         depConfigs,
-        prevDepValues:
-          _memorizedLifecycleDependencies.current?.[lifecycleName]?.[actionName]?.props ?? [],
+        prevDepValues: _memorizedDependencies.current?.[lifecycleName]?.[actionName]?.props ?? [],
       });
 
       if (isDifference) {
-        set(
-          _memorizedLifecycleDependencies.current,
-          `${lifecycleName}.${actionName}.props`,
-          newValues
-        );
+        set(_memorizedDependencies.current, `${lifecycleName}.${actionName}.props`, newValues);
       }
 
       return {
@@ -151,16 +102,42 @@ const useUIComponentLifecycle = ({ componentInstance }: UseUIComponentLifecycleP
       const { isDifference, prevValues, newValues } = updateAndCompareDependencies({
         values: state,
         depConfigs,
-        prevDepValues:
-          _memorizedLifecycleDependencies.current?.[lifecycleName]?.[actionName]?.state ?? [],
+        prevDepValues: _memorizedDependencies.current?.[lifecycleName]?.[actionName]?.state ?? [],
       });
 
       if (isDifference) {
-        set(
-          _memorizedLifecycleDependencies.current,
-          `${lifecycleName}.${actionName}.state`,
-          newValues
-        );
+        set(_memorizedDependencies.current, `${lifecycleName}.${actionName}.state`, newValues);
+      }
+
+      return {
+        isDifference,
+        prevValues,
+        newValues,
+      };
+    },
+    []
+  );
+
+  const updateAndCompareFields = useCallback(
+    ({
+      fieldValues,
+      actionName,
+      depConfigs,
+      lifecycleName,
+    }: {
+      fieldValues: any;
+      actionName: string;
+      lifecycleName: keyof LifecycleConfigs;
+      depConfigs: string[];
+    }) => {
+      const { isDifference, prevValues, newValues } = updateAndCompareDependencies({
+        values: fieldValues,
+        depConfigs,
+        prevDepValues: _memorizedDependencies.current?.[lifecycleName]?.[actionName]?.fields ?? [],
+      });
+
+      if (isDifference) {
+        set(_memorizedDependencies.current, `${lifecycleName}.${actionName}.fields`, newValues);
       }
 
       return {
@@ -219,18 +196,32 @@ const useUIComponentLifecycle = ({ componentInstance }: UseUIComponentLifecycleP
             depConfigs: dependencies.state ?? [],
             state: componentInstance.state,
           });
-          if (isPropsDifference || isStateDifference) {
+          const {
+            prevValues: prevFieldValues,
+            newValues: newFieldValues,
+            isDifference: isFieldsDifference,
+          } = updateAndCompareFields({
+            actionName,
+            lifecycleName,
+            depConfigs: dependencies.state ?? [],
+            fieldValues: formMethods.getValues(),
+          });
+          if (isPropsDifference || isStateDifference || isFieldsDifference) {
             actionMethod?.({
               params: actionMethod.__config.params,
               componentInstance,
               dependencies: {
                 props: {
-                  previous: prevProps,
                   new: newProps,
+                  previous: prevProps,
                 },
                 state: {
-                  previous: prevState,
                   new: newState,
+                  previous: prevState,
+                },
+                fields: {
+                  new: newFieldValues,
+                  previous: prevFieldValues,
                 },
               },
             });
@@ -239,7 +230,14 @@ const useUIComponentLifecycle = ({ componentInstance }: UseUIComponentLifecycleP
       });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [componentInstance.props, componentInstance.state, updateAndCompareProps, updateAndCompareState]
+    [
+      componentInstance.props,
+      componentInstance.state,
+      allLifecycleFieldsDependenciesValue,
+      updateAndCompareProps,
+      updateAndCompareState,
+      updateAndCompareFields,
+    ]
   );
 
   useDidMount(() => {
@@ -271,23 +269,4 @@ const useUIComponentLifecycle = ({ componentInstance }: UseUIComponentLifecycleP
       });
     });
   });
-};
-
-export const useUIComponent = (props: ComponentProps) => {
-  const { actions, componentInstance, mappedComponentName } = useBaseComponent(props);
-
-  const computedResults = useUIComponentComputed({
-    componentInstance,
-  });
-
-  useUIComponentLifecycle({
-    componentInstance,
-  });
-
-  return {
-    mappedComponentName,
-    componentInstance,
-    actions,
-    computed: computedResults,
-  };
 };

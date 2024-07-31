@@ -6,6 +6,8 @@ import { ArrayFieldComponentInstance, ComponentProps } from './types';
 import { useUIBuilderContext } from './UIBuilderContext';
 import { useBaseComponent } from './useBaseComponent';
 import { createMappedFieldName, generateValidationMethods } from './utils';
+import { useFormFieldLifecycle } from './useFormFieldLifecycle';
+import { useFormFieldComputed } from './useFormFieldComputed';
 
 export const useArrayFieldComponent = (props: ComponentProps) => {
   const { componentConfig } = props;
@@ -14,7 +16,7 @@ export const useArrayFieldComponent = (props: ComponentProps) => {
   const { formMethods } = useUIBuilderContext();
 
   if (!formMethods) {
-    throw Error('Must be wrapped by form component');
+    throw Error('`form-array-field` component must be wrapped by `form` component group');
   }
 
   const { control } = formMethods;
@@ -23,6 +25,16 @@ export const useArrayFieldComponent = (props: ComponentProps) => {
     componentConfig.fieldName!,
     componentInstance.parentPaths
   );
+
+  const computedResults = useFormFieldComputed({
+    componentInstance,
+    formMethods,
+  });
+
+  useFormFieldLifecycle({
+    componentInstance,
+    formMethods,
+  });
 
   const validate = useMemo(
     () =>
@@ -89,5 +101,6 @@ export const useArrayFieldComponent = (props: ComponentProps) => {
     mappedFieldValueName: mappedFieldName,
     componentInstance: componentInstance as ArrayFieldComponentInstance,
     actions,
+    computed: computedResults,
   };
 };

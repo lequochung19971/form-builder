@@ -7,7 +7,7 @@ import {
   ComponentInstance,
   EventActionMethods,
   ParentPath,
-  ValidationConfig,
+  ValidationConfigs,
   ValidationMethods,
   WhenCondition,
 } from './types';

@@ -1,28 +1,26 @@
 import {
   EventActionConfigs as OriginalEventActionConfigs,
   ActionConfigs as OriginalActionConfigs,
-  ValidationConfig as OriginalValidationConfig,
+  ValidationConfigs as OriginalValidationConfigs,
   LifecycleActionConfigs as OriginalLifecycleActionConfigs,
-  EffectActionConfigs as OriginalEffectActionConfigs,
-  EffectActionConfig,
+  ComputedConfigs as OriginalComputedConfigs,
 } from '@/ui-builder/types';
 
 declare module '@/ui-builder/types' {
-  export interface EventActionConfigs extends OriginalEventActionConfigs {
-    custom?: ActionConfigs;
-  }
   export interface ActionConfigs extends OriginalActionConfigs {
     doSomething?: boolean;
+  }
+  export interface EventActionConfigs extends OriginalEventActionConfigs {
+    custom?: ActionConfigs;
   }
 
   export interface LifecycleActionConfigs extends OriginalLifecycleActionConfigs {
     testAction?: any;
   }
-  export interface ValidationConfig extends OriginalValidationConfig {
+  export interface ValidationConfigs extends OriginalValidationConfigs {
     validateSomething?: any;
   }
-  export interface EffectActionConfigs extends OriginalEffectActionConfigs {
-    load?: EffectActionConfig;
-  }
+
+  export interface ComputedConfigs extends OriginalComputedConfigs {}
 }
 export * from '@/ui-builder/types';

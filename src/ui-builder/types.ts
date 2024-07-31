@@ -6,9 +6,7 @@ import { AppendRow, PassRowIdToComponent, SetVisibilityConfig } from './actionMe
 export interface BaseComponentProps extends Record<string, any> {
   label?: string;
   visibility?: ComponentVisibilityProps;
-  validations?: ValidationMethods;
   defaultValue?: any;
-  actions?: EventActionMethods;
 }
 
 export type ComponentVisibilityProps = {
@@ -22,14 +20,16 @@ export type ComponentVisibilityProps = {
 
 export interface ComponentState extends Partial<Record<string, any>> {}
 
-type BaseComponentInstance = {
+export type BaseComponentInstance = {
   state: ComponentState;
   __children?: Record<string, BaseComponentInstance> | Record<string, BaseComponentInstance>[];
   props: BaseComponentProps;
   readonly componentConfig: ComponentConfig;
   readonly parentPaths?: ParentPath[];
   readonly __control: ComponentControl;
-  readonly __lifecycle?: LifecycleActionMethods;
+  readonly lifecycle?: LifecycleActionMethods;
+  readonly actions?: EventActionMethods;
+  readonly computed?: ComputedMethods;
 };
 
 export type ArrayFieldComponentInstance = Omit<
@@ -40,6 +40,11 @@ export type ArrayFieldComponentInstance = Omit<
   readonly __control: ArrayComponentControl;
 };
 
+export type FormFieldComponentInstance = Omit<BaseComponentInstance, '__children'> & {
+  __children?: Record<string, BaseComponentInstance>;
+  validations?: ValidationMethods;
+};
+
 export type FormControl = Omit<UseFormReturn, 'formState'>;
 export type FormComponentInstance = Omit<BaseComponentInstance, '__children' | '__control'> & {
   __children?: Record<string, BaseComponentInstance>[];
@@ -47,10 +52,10 @@ export type FormComponentInstance = Omit<BaseComponentInstance, '__children' | '
   readonly __formControl: FormControl;
 };
 
-export type ComponentInstance = BaseComponentInstance & {
-  __children?: Record<string, ComponentInstance> | Record<string, ComponentInstance>[];
-} & Partial<ArrayFieldComponentInstance> &
-  Partial<FormComponentInstance>;
+export type ComponentInstance = BaseComponentInstance &
+  Omit<Partial<ArrayFieldComponentInstance>, '__children'> &
+  Omit<Partial<FormComponentInstance>, '__children'> &
+  Omit<Partial<FormFieldComponentInstance>, '__children'>;
 
 export type PartialComponentInstance = {
   state?: Partial<ComponentInstance['state']>;
@@ -126,7 +131,6 @@ export type ValidationConfigMethod<TParams = any> = {
     conditions?: WhenCondition;
   };
 };
-
 export type ValidationMethodCreation<
   TFieldValue = any,
   TFormValues extends FieldValues = FieldValues,
@@ -154,8 +158,7 @@ export type ValidationMethod<
 }) => ValidateResult) & {
   __config: ValidationConfigMethod | boolean;
 };
-
-export interface ValidationConfig {
+export interface ValidationConfigs {
   required?: ValidationConfigMethod | boolean;
   maxLength?: ValidationConfigMethod;
   minLength?: ValidationConfigMethod;
@@ -163,7 +166,6 @@ export interface ValidationConfig {
 export interface ValidationMethods extends Partial<Record<string, ValidationMethod>> {}
 export interface ValidationMethodCreations
   extends Partial<Record<string, ValidationMethodCreation>> {}
-
 // ======== VALIDATION ========
 
 // export type WatchConfig = string[] | string;
@@ -172,6 +174,25 @@ export interface ValidationMethodCreations
 //   states?: WatchConfig;
 // };
 
+type DependencyValues<TProps = any, TState = any, TFieldValues = any[]> = {
+  props?: {
+    previous?: TProps;
+    new?: TProps;
+  };
+  state?: {
+    previous?: TState;
+    new?: TState;
+  };
+  /**
+   * Field value of field components in form.
+   */
+  fields?: {
+    previous?: TFieldValues;
+    new?: TFieldValues;
+  };
+};
+
+// ======== LIFECYCLE ========
 export type LifecycleActionMethodCreation<
   TParams = any,
   TProps = any,
@@ -180,23 +201,7 @@ export type LifecycleActionMethodCreation<
   TInstance extends ComponentInstance = ComponentInstance
 > = (args: {
   params?: TParams;
-  dependencies?: {
-    props?: {
-      previous?: TProps;
-      new?: TProps;
-    };
-    state?: {
-      previous?: TState;
-      new?: TState;
-    };
-    /**
-     * Field value of field components in form.
-     */
-    fields?: {
-      previous?: TFieldValues;
-      new?: TFieldValues;
-    };
-  };
+  dependencies?: DependencyValues<TProps, TState, TFieldValues>;
   componentInstance: TInstance;
 }) => void;
 
@@ -267,6 +272,7 @@ export type LifecycleConfigs = {
   // Did unmount
   unmount?: LifecycleActionConfigs;
 };
+// ======== LIFECYCLE ========
 
 // ======== ACTIONS ========
 export type ActionMethodCreation<
@@ -318,6 +324,54 @@ type EventName = keyof EventActionConfigs;
 export interface EventActionMethods extends Partial<Record<EventName, ActionMethods>> {}
 // ======== ACTIONS ========
 
+// ======== COMPUTED ========
+export type ComputedMethodCreation<
+  TParams = any,
+  TProps = any,
+  TState = any,
+  TFieldValues = any[],
+  TReturn = any,
+  TInstance extends ComponentInstance = ComponentInstance
+> = (args: {
+  params?: TParams;
+  dependencies?: DependencyValues<TProps, TState, TFieldValues>;
+  componentInstance: TInstance;
+}) => TReturn;
+
+export type ComputedMethodCreations = Partial<Record<string, ComputedMethodCreation>>;
+
+export type ComputedMethod<
+  TParams = any,
+  TProps = any,
+  TState = any,
+  TFieldValues = any[],
+  TReturn = any,
+  TInstance extends ComponentInstance = ComponentInstance
+> = ComputedMethodCreation<TParams, TProps, TState, TFieldValues, TReturn, TInstance> & {
+  __config: ComputedConfig;
+};
+
+export type ComputedMethods = Partial<{
+  [K: string]: ComputedMethod;
+}>;
+
+export type ComputedConfig = {
+  params?: any;
+  dependencies?: {
+    props?: string[];
+    state?: string[];
+
+    /**
+     * Watch field value of field components in form.
+     */
+    fields?: string[];
+  };
+};
+
+export interface ComputedConfigs {
+  [K: string]: ComputedConfig;
+}
+
 export type VisibilityConfig = {
   disabled?: boolean;
   hide?: boolean;
@@ -327,53 +381,41 @@ export type VisibilityConfig = {
 export interface BaseComponentPropsConfigs extends Record<string, any> {
   label?: string;
   visibility?: VisibilityConfig;
-  validations?: ValidationConfig;
   defaultValue?: any;
-  actions?: EventActionConfigs;
 }
 
-export interface BaseComponentConfig<TCType = any> {
+export interface BaseComponentConfig<
+  TCType = any,
+  TProps extends BaseComponentPropsConfigs = BaseComponentPropsConfigs,
+  TState = any
+> {
   id: string;
   componentName: string;
   type?: TCType;
   group: ComponentGroup;
-  index?: number;
-  parentId?: string;
+  // index?: number;
+  // parentId?: string;
   lifecycle?: LifecycleConfigs;
-  effect?: EffectActionConfigs;
+  actions?: EventActionConfigs;
+  props?: TProps;
+  state?: TState;
+  computed?: ComputedConfigs;
 }
 
 export type FieldComponentConfig<TCType = any> = BaseComponentConfig<TCType> & {
   fieldName: string;
+  validations?: ValidationConfigs;
 };
 
 export type ComponentConfig<TCType = any> = BaseComponentConfig<TCType> & {
   components?: ComponentConfig<TCType>[];
-  props?: BaseComponentPropsConfigs;
-  // css?: Interpolation<Theme>;
 } & Partial<FieldComponentConfig<TCType>>;
 
+export type ComponentMeta = Partial<Record<string, any>>;
 export type ComponentProps = {
   componentConfig: ComponentConfig;
   parentPaths: ParentPath[];
+
+  // TODO: Some meta/custom information (Incoming feature)
+  meta?: ComponentMeta;
 };
-
-// {
-
-//   effect: {
-//     test: {
-//       params: any;
-//       dependencies: {
-//         props: [],
-//         states: [],
-//       }
-//     },
-//     test: {
-//       params: any;
-//       dependencies: {
-//         props: [],
-//         states: [],
-//       }
-//     }
-//   }
-// }

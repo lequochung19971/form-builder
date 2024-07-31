@@ -3,11 +3,11 @@ import shouldRenderFormState from '@/form/logic/shouldRenderFormState';
 import { useFormSubscribe } from '@/form/useFormSubscribe';
 import { useEffect, useRef, useState } from 'react';
 import { FieldValues, FormState, InternalFieldName, UseFormReturn } from 'react-hook-form';
-import { ComponentProps } from './types';
-import { useBaseComponent } from './useBaseComponent';
+import { ComponentProps, FormComponentInstance } from './types';
+import { useUIComponent } from './useUIComponent';
 
 export const useFormComponent = (props: ComponentProps) => {
-  const { actions, componentInstance, mappedComponentName } = useBaseComponent(props);
+  const { actions, componentInstance, mappedComponentName, computed } = useUIComponent(props);
 
   const _formControl = useRef<UseFormReturn | undefined>();
   _formControl.current = componentInstance.__formControl as UseFormReturn;
@@ -85,9 +85,10 @@ export const useFormComponent = (props: ComponentProps) => {
 
   return {
     mappedComponentName,
-    componentInstance,
+    componentInstance: componentInstance as FormComponentInstance,
     formState,
     formControl: _formControl.current,
     actions,
+    computed,
   };
 };

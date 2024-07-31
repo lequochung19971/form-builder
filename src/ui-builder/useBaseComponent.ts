@@ -1,10 +1,12 @@
 import { useRefContinuousUpdate } from '@/hooks/useRefContinuousUpdate';
 import { useMemo } from 'react';
-import { ComponentProps } from './types';
+import { ComponentInstance, ComponentProps } from './types';
 import { useWatchComponentInstance } from './useWatchComponentInstance';
 import { createMappedComponentName, generateActions } from './utils';
 
-export const useBaseComponent = (props: ComponentProps) => {
+export const useBaseComponent = <T extends ComponentInstance = ComponentInstance>(
+  props: ComponentProps
+) => {
   const { componentConfig, parentPaths } = props;
   const memorizedComponentConfig = useRefContinuousUpdate(componentConfig);
 
@@ -13,7 +15,7 @@ export const useBaseComponent = (props: ComponentProps) => {
     parentPaths
   );
 
-  const componentInstance = useWatchComponentInstance({
+  const componentInstance: T = useWatchComponentInstance({
     componentName: mappedComponentName,
   });
 
@@ -24,7 +26,7 @@ export const useBaseComponent = (props: ComponentProps) => {
   const componentActionMethods = useMemo(
     () =>
       generateActions({
-        eventActionMethods: componentInstance.props.actions ?? {},
+        eventActionMethods: componentInstance.actions ?? {},
         componentInstance,
       }),
     [componentInstance]

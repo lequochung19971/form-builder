@@ -38,16 +38,15 @@ const components: ComponentConfig<ComponentType>[] = [
             type: ComponentType.INPUT_FIELD,
             fieldName: 'firstName',
             group: 'form-field',
-            props: {
-              validations: {
-                required: {
-                  when: {
-                    dependsOn: ['array[].lastName'],
-                    conditions: {},
-                  },
+            validations: {
+              required: {
+                when: {
+                  dependsOn: ['array[].lastName'],
+                  conditions: {},
                 },
               },
             },
+            props: {},
           },
           {
             id: 'inputField-dbb0ea77-3ca9-4d19-89b5-d8b07e09a87a',
@@ -78,16 +77,15 @@ const components: ComponentConfig<ComponentType>[] = [
         type: ComponentType.INPUT_FIELD,
         fieldName: 'firstName',
         group: 'form-field',
-        props: {
-          validations: {
-            required: {
-              when: {
-                dependsOn: ['lastName'],
-                conditions: {},
-              },
+        validations: {
+          required: {
+            when: {
+              dependsOn: ['lastName'],
+              conditions: {},
             },
           },
         },
+        props: {},
       },
       {
         id: 'inputField-dbb0ea77-3ca9-4d19-89b5-d8b07e09a87c',
@@ -95,16 +93,15 @@ const components: ComponentConfig<ComponentType>[] = [
         type: ComponentType.INPUT_FIELD,
         fieldName: 'lastName',
         group: 'form-field',
-        props: {
-          validations: {
-            required: {
-              when: {
-                dependsOn: ['firstName'],
-                conditions: {},
-              },
+        validations: {
+          required: {
+            when: {
+              dependsOn: ['firstName'],
+              conditions: {},
             },
           },
         },
+        props: {},
       },
       {
         id: 'inputField-dcfdadc8-8723-4f01-a49d-50025081e2d8',
@@ -128,13 +125,13 @@ const components: ComponentConfig<ComponentType>[] = [
         group: 'ui',
         props: {
           label: 'Click Here',
-          actions: {
-            onClick: {
-              appendRow: {
-                target: 'form.__children.array',
-                value: {
-                  firstName: '',
-                },
+        },
+        actions: {
+          onClick: {
+            appendRow: {
+              target: 'form.__children.array',
+              value: {
+                firstName: '',
               },
             },
           },

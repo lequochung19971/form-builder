@@ -12,22 +12,29 @@ import {
   ActionMethodCreations,
   ActionMethods,
   ArrayFieldComponentInstance,
+  BaseComponentInstance,
   BaseComponentProps,
   ComponentConfig,
   ComponentControl,
   ComponentInstance,
   ComponentState,
   EventActionMethods,
+  FormComponentInstance,
+  FormFieldComponentInstance,
   LifecycleActionMethod,
   LifecycleActionMethodCreations,
   LifecycleActionMethods,
   ParentPath,
   PartialComponentInstance,
-  ValidationConfig,
+  ValidationConfigs,
   ValidationConfigMethod,
   ValidationMethod,
   ValidationMethodCreations,
   ValidationMethods,
+  ComputedMethodCreations,
+  ComputedMethods,
+  ComputedMethod,
+  ComputedConfig,
 } from './types';
 import {
   compareFieldNames,
@@ -94,12 +101,14 @@ export const createUIBuilder = (args: {
   customActionMethods?: ActionMethodCreations;
   customValidationMethods?: ValidationMethodCreations;
   customLifecycleActionMethodCreations?: LifecycleActionMethodCreations;
+  customComputedActionMethodCreations?: ComputedMethodCreations;
 }): UIBuilderControl => {
   const {
     componentConfigs,
     customActionMethods = {},
     customValidationMethods = {},
     customLifecycleActionMethodCreations = {},
+    customComputedActionMethodCreations = {},
   } = args;
   const _actionMethods = {
     ...builtInActionMethods,
@@ -112,6 +121,9 @@ export const createUIBuilder = (args: {
   const _lifecycleActionMethods = {
     ...customLifecycleActionMethodCreations,
   } as LifecycleActionMethodCreations;
+  const _computedActionMethodCreations = {
+    ...customComputedActionMethodCreations,
+  } as ComputedMethodCreations;
 
   let _componentInstances = {} as Record<string, ComponentInstance>;
   const _validationDependencies = [] as ValidationDependency[];
@@ -272,12 +284,12 @@ export const createUIBuilder = (args: {
       );
       const neededComponentStateProperties: ComponentState = {};
 
-      const { actions, validations, ...restProps } = comConfig.props ?? ({} as BaseComponentProps);
+      const { validations, ...restProps } = comConfig.props ?? ({} as BaseComponentProps);
 
       /**
        * get action methods
        */
-      const actionsFns = Object.entries(actions ?? {}).reduce(
+      const actionsFns = Object.entries(comConfig.actions ?? {}).reduce(
         (result, [event, config]: [string, ActionConfigs]) => ({
           ...result,
           [event]: Object.entries(config ?? {}).reduce((methods, [actionName, actionConfig]) => {
@@ -293,6 +305,23 @@ export const createUIBuilder = (args: {
           }, {} as ActionMethods),
         }),
         {} as EventActionMethods
+      );
+
+      /**
+       * get computed methods
+       */
+      const computedFns = Object.entries(comConfig.computed ?? {}).reduce(
+        (result, [methodName, methodConfig]) => {
+          const definedMethod = _computedActionMethodCreations[methodName];
+          const method: ComputedMethod = (...args) => definedMethod?.(...args);
+          method.__config = methodConfig;
+
+          return {
+            ...result,
+            [methodName]: definedMethod ? method : undefined,
+          };
+        },
+        {} as ComputedMethods
       );
 
       /**
@@ -319,10 +348,61 @@ export const createUIBuilder = (args: {
         {} as LifecycleActionMethods
       );
 
-      const componentProps: BaseComponentProps = {
-        ...(restProps ?? {}),
-        actions: actionsFns,
+      /**
+       * Save validation dependencies to use for trigger if dependent fields are changed.
+       */
+      const saveValidationDependencies = () => {
+        if (Object.keys(validations ?? {}).length) {
+          const { mappedFieldName: mappedFieldValueName } = createMappedFieldName(
+            comConfig.fieldName!,
+            parentPaths
+          );
+
+          Object.values(comConfig.validations ?? {}).forEach(
+            (validationConfig: ValidationConfigMethod | boolean) => {
+              if (typeof validationConfig === 'boolean') return;
+
+              if (validationConfig.when?.dependsOn?.length) {
+                validationConfig.when?.dependsOn.forEach((dependentFieldName) => {
+                  const index = _validationDependencies.findIndex((d) =>
+                    compareFieldNames(
+                      d.fieldName,
+                      resolveArrayIndexes(parentPaths, dependentFieldName)
+                    )
+                  );
+                  if (index > -1) {
+                    _validationDependencies[index].deps = [
+                      ...new Set([..._validationDependencies[index].deps, mappedFieldValueName]),
+                    ];
+                  } else {
+                    _validationDependencies.push({
+                      fieldName: resolveArrayIndexes(parentPaths, dependentFieldName),
+                      deps: [mappedFieldValueName],
+                    });
+                  }
+                });
+              }
+            }
+          );
+        }
       };
+
+      /**
+       * Get validators
+       */
+      const validators = Object.entries(
+        (comConfig.validations ?? {}) as Record<string, ValidationConfigs[keyof ValidationConfigs]>
+      ).reduce((result, [key, config]) => {
+        const definedMethod = _validationMethods[key];
+        const method: ValidationMethod = (...args) => definedMethod?.(...args);
+        method.__config = config;
+        return {
+          ...result,
+          [key]: config && definedMethod ? method : undefined,
+        };
+      }, {} as ValidationMethods);
+
+      const componentProps: BaseComponentProps = restProps;
 
       const basicComponentControl: ComponentControl = {
         getCurrent: () => _getComponentInstances(mappedComponentName) as ComponentInstance,
@@ -390,57 +470,22 @@ export const createUIBuilder = (args: {
         setComponentState: (state) => _setComponentState(mappedComponentName, state),
       };
 
-      /**
-       * Save validation dependencies to use for trigger if dependent fields are changed.
-       */
-      const saveValidationDependencies = () => {
-        if (Object.keys(validations ?? {}).length) {
-          const { mappedFieldName: mappedFieldValueName } = createMappedFieldName(
-            comConfig.fieldName!,
-            parentPaths
-          );
-
-          Object.values(comConfig.props?.validations ?? {}).forEach(
-            (validationConfig: ValidationConfigMethod | boolean) => {
-              if (typeof validationConfig === 'boolean') return;
-
-              if (validationConfig.when?.dependsOn?.length) {
-                validationConfig.when?.dependsOn.forEach((dependentFieldName) => {
-                  const index = _validationDependencies.findIndex((d) =>
-                    compareFieldNames(
-                      d.fieldName,
-                      resolveArrayIndexes(parentPaths, dependentFieldName)
-                    )
-                  );
-                  if (index > -1) {
-                    _validationDependencies[index].deps = [
-                      ...new Set([..._validationDependencies[index].deps, mappedFieldValueName]),
-                    ];
-                  } else {
-                    _validationDependencies.push({
-                      fieldName: resolveArrayIndexes(parentPaths, dependentFieldName),
-                      deps: [mappedFieldValueName],
-                    });
-                  }
-                });
-              }
-            }
-          );
-        }
+      const basicComponentInstance: BaseComponentInstance = {
+        state: neededComponentStateProperties,
+        parentPaths,
+        props: componentProps,
+        componentConfig: comConfig,
+        actions: actionsFns,
+        lifecycle: lifecycleActionsFns,
+        __control: basicComponentControl,
+        computed: computedFns,
       };
 
       /**
        * For UI components
        */
       if (comConfig.group === 'ui') {
-        set(result, mappedComponentName, {
-          state: neededComponentStateProperties,
-          props: componentProps,
-          componentConfig: comConfig,
-          __lifecycle: lifecycleActionsFns,
-          __control: basicComponentControl,
-          parentPaths,
-        } as ComponentInstance);
+        set(result, mappedComponentName, basicComponentInstance as ComponentInstance);
 
         if (comConfig.components?.length) {
           createComponentInstances(
@@ -458,38 +503,12 @@ export const createUIBuilder = (args: {
          * For FORM components
          */
       } else if (comConfig.group === 'form') {
-        /**
-         * Get validators
-         */
-        const validators = Object.entries(
-          (comConfig.props?.validations ?? {}) as Record<
-            string,
-            ValidationConfig[keyof ValidationConfig]
-          >
-        ).reduce((result, [key, config]) => {
-          const definedMethod = _validationMethods[key];
-          const method: ValidationMethod = (...args) => definedMethod?.(...args);
-          method.__config = config;
-          return {
-            ...result,
-            [key]: config && definedMethod ? method : undefined,
-          };
-        }, {} as ValidationMethods);
-
         set(result, mappedComponentName, {
-          state: neededComponentStateProperties,
-          componentConfig: comConfig,
-          props: {
-            ...componentProps,
-            validations: validators,
-          },
+          ...basicComponentInstance,
           __formControl: createFormControl({
             mode: 'all',
           }),
-          __lifecycle: lifecycleActionsFns,
-          __control: basicComponentControl,
-          parentPaths,
-        } as ComponentInstance);
+        } as FormComponentInstance);
 
         if (comConfig.components?.length) {
           createComponentInstances(
@@ -509,16 +528,12 @@ export const createUIBuilder = (args: {
       } else if (comConfig.group === 'form-field') {
         const formComponent = parentPaths.find((p) => p.group === 'form');
         if (!formComponent)
-          throw Error('Form field component must be wrapped inside form component');
+          throw Error('`form-field` component must be wrapped by `form` component group');
 
         set(result, mappedComponentName, {
-          state: neededComponentStateProperties,
-          props: componentProps,
-          componentConfig: comConfig,
-          __lifecycle: lifecycleActionsFns,
-          __control: basicComponentControl,
-          parentPaths,
-        } as ComponentInstance);
+          ...basicComponentInstance,
+          validations: validators,
+        } as FormFieldComponentInstance);
 
         saveValidationDependencies();
 
@@ -534,11 +549,14 @@ export const createUIBuilder = (args: {
             })
           );
         }
+        /**
+         * For FORM ARRAY FIELD components
+         */
       } else if (comConfig.group === 'form-array-field') {
         const formComponent = parentPaths.find((p) => p.group === 'form');
 
         if (!formComponent)
-          throw Error('Form field component must be wrapped inside form component');
+          throw Error('`form-array-field` component must be wrapped by `form` component group');
         const { mappedFieldName: mappedFieldValueName } = createMappedFieldName(
           comConfig.fieldName!,
           parentPaths
@@ -614,7 +632,7 @@ export const createUIBuilder = (args: {
               _setComponentInstance(mappedComponentName, {
                 ...get(_componentInstances, mappedComponentName),
                 __children: [],
-              });
+              } as ArrayFieldComponentInstance);
             }
           },
           prepend: (value, options) => {
@@ -821,12 +839,9 @@ export const createUIBuilder = (args: {
           },
         } as ComponentControl;
         set(result, mappedComponentName, {
-          state: neededComponentStateProperties,
-          props: componentProps,
-          componentConfig: comConfig,
-          __lifecycle: lifecycleActionsFns,
+          ...basicComponentInstance,
+          validations: validators,
           __control: arrayComponentControl,
-          parentPaths,
         } as ComponentInstance);
 
         const value: Record<string, any>[] | undefined = getValues(mappedFieldValueName);

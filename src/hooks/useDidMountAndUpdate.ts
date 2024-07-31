@@ -1,7 +1,7 @@
-import { DependencyList, EffectCallback, useEffect, useMemo, useRef } from 'react';
+import { DependencyList, useEffect, useMemo, useRef } from 'react';
 import { useDidMount } from './useDidMount';
-import { useWillUnmount } from './useWillUnmount';
 import { useRefContinuousUpdate } from './useRefContinuousUpdate';
+import { useWillUnmount } from './useWillUnmount';
 
 export function useDidMountAndUpdate(
   callback: (didMount: boolean) => void,
