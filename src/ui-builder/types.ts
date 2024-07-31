@@ -113,9 +113,10 @@ export type ComponentGroup = 'ui' | 'form' | 'form-field' | 'form-array-field';
 
 // ======== VALIDATION ========
 // TODO: In coming feature
-export type WhenCondition = any;
-export type ValidationConfigMethod<TParams = any> = {
-  params?: TParams;
+export type WhenConditionConfigs = any;
+
+export type ValidationConfig = {
+  params?: any;
   message?: string;
   when?: {
     /**
@@ -128,10 +129,11 @@ export type ValidationConfigMethod<TParams = any> = {
      * `['array[].object.secondaryArray[].firstName', 'array[].firstName', ...]`
      */
     dependsOn: string[];
-    conditions?: WhenCondition;
+    conditions?: WhenConditionConfigs;
   };
 };
 export type ValidationMethodCreation<
+  TParams = any,
   TFieldValue = any,
   TFormValues extends FieldValues = FieldValues,
   TInstance extends ComponentInstance = ComponentInstance
@@ -139,40 +141,28 @@ export type ValidationMethodCreation<
   fieldValue: TFieldValue;
   formValues: TFormValues;
   message?: string;
-  params?: unknown;
+  params?: TParams;
   componentInstance: TInstance;
   dependentFieldValues?: any[];
 }) => ValidateResult;
 
 export type ValidationMethod<
+  TParams = any,
   TFieldValue = any,
   TFormValues extends FieldValues = FieldValues,
   TInstance extends ComponentInstance = ComponentInstance
-> = ((args: {
-  fieldValue: TFieldValue;
-  formValues: TFormValues;
-  message?: string;
-  params?: unknown;
-  componentInstance: TInstance;
-  dependentFieldValues?: any[];
-}) => ValidateResult) & {
-  __config: ValidationConfigMethod | boolean;
+> = ValidationMethodCreation<TParams, TFieldValue, TFormValues, TInstance> & {
+  __config: ValidationConfig | boolean;
 };
 export interface ValidationConfigs {
-  required?: ValidationConfigMethod | boolean;
-  maxLength?: ValidationConfigMethod;
-  minLength?: ValidationConfigMethod;
+  required?: ValidationConfig | boolean;
+  maxLength?: ValidationConfig;
+  minLength?: ValidationConfig;
 }
 export interface ValidationMethods extends Partial<Record<string, ValidationMethod>> {}
 export interface ValidationMethodCreations
   extends Partial<Record<string, ValidationMethodCreation>> {}
 // ======== VALIDATION ========
-
-// export type WatchConfig = string[] | string;
-// export type Watch = {
-//   values?: WatchConfig;
-//   states?: WatchConfig;
-// };
 
 type DependencyValues<TProps = any, TState = any, TFieldValues = any[]> = {
   props?: {
@@ -393,8 +383,6 @@ export interface BaseComponentConfig<
   componentName: string;
   type?: TCType;
   group: ComponentGroup;
-  // index?: number;
-  // parentId?: string;
   lifecycle?: LifecycleConfigs;
   actions?: EventActionConfigs;
   props?: TProps;

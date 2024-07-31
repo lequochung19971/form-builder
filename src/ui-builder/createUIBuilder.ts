@@ -18,6 +18,9 @@ import {
   ComponentControl,
   ComponentInstance,
   ComponentState,
+  ComputedMethod,
+  ComputedMethodCreations,
+  ComputedMethods,
   EventActionMethods,
   FormComponentInstance,
   FormFieldComponentInstance,
@@ -26,15 +29,11 @@ import {
   LifecycleActionMethods,
   ParentPath,
   PartialComponentInstance,
+  ValidationConfig,
   ValidationConfigs,
-  ValidationConfigMethod,
   ValidationMethod,
   ValidationMethodCreations,
   ValidationMethods,
-  ComputedMethodCreations,
-  ComputedMethods,
-  ComputedMethod,
-  ComputedConfig,
 } from './types';
 import {
   compareFieldNames,
@@ -290,20 +289,25 @@ export const createUIBuilder = (args: {
        * get action methods
        */
       const actionsFns = Object.entries(comConfig.actions ?? {}).reduce(
-        (result, [event, config]: [string, ActionConfigs]) => ({
-          ...result,
-          [event]: Object.entries(config ?? {}).reduce((methods, [actionName, actionConfig]) => {
-            const method = _actionMethods[actionName];
-            return {
-              ...methods,
-              [actionName]: (args) =>
-                method?.({
-                  ...args,
-                  config: actionConfig,
-                }),
-            };
-          }, {} as ActionMethods),
-        }),
+        (result, [event, config]: [string, ActionConfigs]) => {
+          if (!config) return result;
+          return {
+            ...result,
+            [event]: Object.entries(config).reduce((methods, [actionName, actionConfig]) => {
+              if (!actionConfig) return methods;
+
+              const method = _actionMethods[actionName];
+              return {
+                ...methods,
+                [actionName]: (args) =>
+                  method?.({
+                    ...args,
+                    config: actionConfig,
+                  }),
+              };
+            }, {} as ActionMethods),
+          };
+        },
         {} as EventActionMethods
       );
 
@@ -312,6 +316,8 @@ export const createUIBuilder = (args: {
        */
       const computedFns = Object.entries(comConfig.computed ?? {}).reduce(
         (result, [methodName, methodConfig]) => {
+          if (!methodConfig) return result;
+
           const definedMethod = _computedActionMethodCreations[methodName];
           const method: ComputedMethod = (...args) => definedMethod?.(...args);
           method.__config = methodConfig;
@@ -329,10 +335,14 @@ export const createUIBuilder = (args: {
        */
       const lifecycleActionsFns = Object.entries(comConfig.lifecycle ?? {}).reduce(
         (result, [lifecycleName, actConfigs]) => {
+          if (!actConfigs) return result;
+
           return {
             ...result,
             [lifecycleName]: Object.entries(actConfigs).reduce(
               (methods, [actionName, actionConfig]) => {
+                if (!actionConfig) return methods;
+
                 const definedMethod = _lifecycleActionMethods[actionName];
                 const method: LifecycleActionMethod = (...args) => definedMethod?.(...args);
                 method.__config = actionConfig;
@@ -359,7 +369,7 @@ export const createUIBuilder = (args: {
           );
 
           Object.values(comConfig.validations ?? {}).forEach(
-            (validationConfig: ValidationConfigMethod | boolean) => {
+            (validationConfig: ValidationConfig | boolean) => {
               if (typeof validationConfig === 'boolean') return;
 
               if (validationConfig.when?.dependsOn?.length) {
@@ -393,6 +403,8 @@ export const createUIBuilder = (args: {
       const validators = Object.entries(
         (comConfig.validations ?? {}) as Record<string, ValidationConfigs[keyof ValidationConfigs]>
       ).reduce((result, [key, config]) => {
+        if (!config) return result;
+
         const definedMethod = _validationMethods[key];
         const method: ValidationMethod = (...args) => definedMethod?.(...args);
         method.__config = config;

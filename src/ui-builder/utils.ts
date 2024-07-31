@@ -9,7 +9,7 @@ import {
   ParentPath,
   ValidationConfigs,
   ValidationMethods,
-  WhenCondition,
+  WhenConditionConfigs,
 } from './types';
 
 export const createMappedFieldName = (current: string, parentPaths = [] as ParentPath[]) => {
@@ -254,7 +254,7 @@ export function compareFieldNames(firstFieldName: string, secondFieldName: strin
 // TODO: In coming feature
 export const executeWhenCondition = (
   deps: any[] | undefined,
-  condition: WhenCondition
+  condition: WhenConditionConfigs
 ): boolean => {
   return false;
 };
