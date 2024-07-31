@@ -113,7 +113,22 @@ export type ComponentGroup = 'ui' | 'form' | 'form-field' | 'form-array-field';
 
 // ======== VALIDATION ========
 // TODO: In coming feature
-export type WhenConditionConfigs = any;
+export type WhenConditionMethodCreation<
+  TParams = any,
+  TFieldValue = any,
+  TFormValues extends FieldValues = FieldValues,
+  TInstance extends ComponentInstance = ComponentInstance
+> = (args: {
+  fieldValue: TFieldValue;
+  formValues: TFormValues;
+  message?: string;
+  params?: TParams;
+  componentInstance: TInstance;
+  dependentFieldValues?: any[];
+}) => boolean;
+export interface WhenConditionConfigs {
+  [MethodName: string]: any;
+}
 
 export type ValidationConfig = {
   params?: any;
