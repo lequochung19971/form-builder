@@ -150,6 +150,7 @@ const components2: ComponentConfig<ComponentType>[] = [
     group: 'ui',
     props: {
       label: 'Demo UI Builder',
+      variant: 'h1',
     },
   },
   {
@@ -167,6 +168,16 @@ const components2: ComponentConfig<ComponentType>[] = [
           label: 'Create user',
         },
         components: [
+          {
+            id: uuidV4(),
+            componentName: 'header3',
+            type: ComponentType.TEXT,
+            group: 'ui',
+            props: {
+              label: 'Create a new user',
+              variant: 'h3',
+            },
+          },
           {
             id: uuidV4(),
             componentName: 'form',
@@ -283,6 +294,16 @@ const components2: ComponentConfig<ComponentType>[] = [
           label: 'User management',
         },
         components: [
+          {
+            id: uuidV4(),
+            componentName: 'header3',
+            type: ComponentType.TEXT,
+            group: 'ui',
+            props: {
+              label: 'User list',
+              variant: 'h3',
+            },
+          },
           {
             id: uuidV4(),
             componentName: 'form',
