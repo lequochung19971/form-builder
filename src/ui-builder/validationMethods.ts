@@ -7,7 +7,6 @@ export const required: ValidationMethodCreation = ({
   dependentFieldValues,
   componentInstance,
 }) => {
-  console.log(dependentFieldValues, componentInstance.componentConfig, params);
   return fieldValue ? message : false;
 };
 
@@ -18,7 +17,6 @@ export const maxLength: ValidationMethodCreation<number> = ({
   dependentFieldValues,
   componentInstance,
 }) => {
-  console.log(dependentFieldValues, componentInstance.componentConfig, params);
   return fieldValue ? message : false;
 };
 
@@ -29,7 +27,6 @@ export const minLength: ValidationMethodCreation<number> = ({
   dependentFieldValues,
   componentInstance,
 }) => {
-  console.log(dependentFieldValues, componentInstance.componentConfig, params);
   return fieldValue ? message : false;
 };
 

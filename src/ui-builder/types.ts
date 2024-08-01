@@ -1,12 +1,24 @@
 import { CreateArrayReturn } from '@/form/createFieldArray';
 import { FieldValues, UseFormReturn, ValidateResult } from 'react-hook-form';
 import { UIBuilderControl } from './createUIBuilder';
-import { AppendRow, PassRowIdToComponent, SetVisibilityConfig } from './actionMethods';
+import {
+  AppendRow,
+  CallApiConfig,
+  PassRowIdToComponent,
+  SetPropsConfig,
+  SetPropsConfigArrayItemData,
+} from './actionMethods';
+import { FormLoadDataSourceConfig } from './lifecycleActionMethods';
 
 export interface BaseComponentProps extends Record<string, any> {
   label?: string;
-  visibility?: ComponentVisibilityProps;
   defaultValue?: any;
+  disabled?: boolean;
+  hidden?: boolean;
+  loading?: boolean;
+  readOnly?: boolean;
+  // for dialog, popover, drawer, ...
+  open?: boolean;
 }
 
 export type ComponentVisibilityProps = {
@@ -243,8 +255,8 @@ export type LifecycleActionMethods = {
   unmount?: Partial<Record<string, LifecycleActionMethod>>;
 };
 
-export interface LifecycleActionConfig {
-  params?: any;
+export interface LifecycleActionConfig<TParams extends Record<string, any> = Record<string, any>> {
+  params?: TParams;
   /**
    * Use for `update` and `mountAndUpdate` lifecycle. They will be triggered depends on `dependencies` config
    * if dependencies is empty array `[]` or `undefined`, it just trigger at `didMount`.
@@ -260,7 +272,7 @@ export interface LifecycleActionConfig {
   };
 }
 export interface LifecycleActionConfigs {
-  test?: LifecycleActionConfig;
+  'form.loadDataSource'?: LifecycleActionConfig<FormLoadDataSourceConfig>;
 }
 
 export type LifecycleName = keyof LifecycleConfigs;
@@ -284,7 +296,7 @@ export type ActionMethodCreation<
   TConfig = any,
   TProps extends BaseComponentProps = BaseComponentProps,
   TState extends ComponentState = ComponentState,
-  TEvent extends React.SyntheticEvent = React.SyntheticEvent,
+  TEvent = any,
   TInstance extends ComponentInstance = ComponentInstance
 > = (args: {
   config: TConfig;
@@ -297,16 +309,19 @@ export interface ActionMethodCreations extends Partial<Record<string, ActionMeth
 
 export type ActionMethod<
   TProps extends BaseComponentProps = BaseComponentProps,
-  TEvent extends React.SyntheticEvent = React.SyntheticEvent,
+  TEvent = any,
   TInstance extends ComponentInstance = ComponentInstance
-> = (args: { event: TEvent; componentInstance: TInstance; props?: TProps }) => void;
+> = (args: { event?: TEvent; componentInstance: TInstance; props?: TProps }) => void;
 
 export type ActionMethods = Partial<Record<string, ActionMethod>>;
 export interface ActionConfigs {
-  setVisibility?: SetVisibilityConfig;
+  setProps?: SetPropsConfig;
   passRowIdToComponent?: PassRowIdToComponent;
   appendRow?: AppendRow;
   prependRow?: AppendRow;
+  callApi?: CallApiConfig;
+  setPropsFromArrayItemData?: SetPropsConfigArrayItemData;
+  updateUser?: boolean;
 }
 export interface EventActionConfigs {
   onClick?: ActionConfigs;
@@ -385,8 +400,11 @@ export type VisibilityConfig = {
 
 export interface BaseComponentPropsConfigs extends Record<string, any> {
   label?: string;
-  visibility?: VisibilityConfig;
   defaultValue?: any;
+  grid?: {
+    cols?: number;
+    colSpan?: number;
+  };
 }
 
 export interface BaseComponentConfig<
@@ -398,6 +416,8 @@ export interface BaseComponentConfig<
   componentName: string;
   type?: TCType;
   group: ComponentGroup;
+  parentId?: string;
+  index?: number;
   lifecycle?: LifecycleConfigs;
   actions?: EventActionConfigs;
   props?: TProps;

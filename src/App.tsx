@@ -5,10 +5,11 @@ import { ComponentConfig } from './ui-builder/types';
 import { useForm } from 'react-hook-form';
 import { Input } from './components/ui/input';
 import { ComponentType } from './page-builder/types';
+import { v4 as uuidV4 } from 'uuid';
 
 const components: ComponentConfig<ComponentType>[] = [
   {
-    id: 'text-dcfdadc8-8723-4f01-a49d-50025081e2d8',
+    id: uuidV4(),
     componentName: 'header1',
     type: ComponentType.TEXT,
     group: 'ui',
@@ -141,6 +142,370 @@ const components: ComponentConfig<ComponentType>[] = [
   },
 ];
 
+const components2: ComponentConfig<ComponentType>[] = [
+  {
+    id: uuidV4(),
+    componentName: 'header1',
+    type: ComponentType.TEXT,
+    group: 'ui',
+    props: {
+      label: 'Demo UI Builder',
+    },
+  },
+  {
+    id: uuidV4(),
+    componentName: 'tabs',
+    group: 'ui',
+    type: ComponentType.TABS,
+    components: [
+      {
+        id: uuidV4(),
+        componentName: 'tab1',
+        group: 'ui',
+        type: ComponentType.TAB,
+        props: {
+          label: 'Create user',
+        },
+        components: [
+          {
+            id: uuidV4(),
+            componentName: 'form',
+            type: ComponentType.FORM,
+            group: 'form',
+            props: {
+              grid: {
+                cols: 4,
+              },
+            },
+            actions: {
+              onSubmit: {
+                callApi: {
+                  method: 'POST',
+                  url: '/users',
+                  resetForm: true,
+                },
+              },
+            },
+            components: [
+              {
+                id: uuidV4(),
+                componentName: 'firstName',
+                fieldName: 'firstName',
+                type: ComponentType.INPUT_FIELD,
+                group: 'form-field',
+                props: {
+                  defaultValue: '',
+                  label: 'First Name',
+                  grid: {
+                    colSpan: 1,
+                  },
+                },
+              },
+              {
+                id: uuidV4(),
+                componentName: 'lastName',
+                fieldName: 'lastName',
+                type: ComponentType.INPUT_FIELD,
+                group: 'form-field',
+                props: {
+                  defaultValue: '',
+                  label: 'Last Name',
+                  grid: {
+                    colSpan: 1,
+                  },
+                },
+              },
+              {
+                id: uuidV4(),
+                componentName: 'fullName',
+                fieldName: 'fullName',
+                type: ComponentType.INPUT_FIELD,
+                group: 'form-field',
+                props: {
+                  defaultValue: '',
+                  label: 'Full Name',
+                  grid: {
+                    colSpan: 1,
+                  },
+                },
+              },
+              {
+                id: uuidV4(),
+                componentName: 'phone',
+                fieldName: 'phone',
+                type: ComponentType.INPUT_FIELD,
+                group: 'form-field',
+                props: {
+                  defaultValue: '',
+                  label: 'Phone',
+                  grid: {
+                    colSpan: 1,
+                  },
+                },
+              },
+              {
+                id: uuidV4(),
+                componentName: 'Address',
+                fieldName: 'address',
+                type: ComponentType.INPUT_FIELD,
+                group: 'form-field',
+                props: {
+                  defaultValue: '',
+                  label: 'Address',
+                  grid: {
+                    colSpan: 4,
+                  },
+                },
+              },
+              {
+                id: uuidV4(),
+                componentName: 'button',
+                type: ComponentType.BUTTON,
+                group: 'ui',
+                props: {
+                  grid: {
+                    colSpan: 4,
+                  },
+                  type: 'submit',
+                  label: 'Submit',
+                },
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: uuidV4(),
+        componentName: 'tab2',
+        group: 'ui',
+        type: ComponentType.TAB,
+        props: {
+          label: 'User management',
+        },
+        components: [
+          {
+            id: uuidV4(),
+            componentName: 'form',
+            type: ComponentType.FORM,
+            group: 'form',
+            lifecycle: {
+              mountAndUpdate: {
+                'form.loadDataSource': {
+                  params: {
+                    method: 'GET',
+                    url: '/users',
+                    loadSuccess: {
+                      resetToPath: 'users',
+                    },
+                  },
+                  dependencies: {
+                    props: ['refetchEvent'],
+                  },
+                },
+              },
+            },
+            components: [
+              {
+                id: uuidV4(),
+                componentName: 'users',
+                fieldName: 'users',
+                group: 'form-array-field',
+                type: ComponentType.DATA_TABLE,
+                props: {
+                  defaultValue: [],
+                },
+                components: [
+                  {
+                    id: uuidV4(),
+                    componentName: 'firstName',
+                    fieldName: 'firstName',
+                    type: ComponentType.TEXT_FIELD,
+                    group: 'form-field',
+                    props: {
+                      defaultValue: '',
+                      label: 'First Name',
+                    },
+                  },
+                  {
+                    id: uuidV4(),
+                    componentName: 'lastName',
+                    fieldName: 'lastName',
+                    type: ComponentType.TEXT_FIELD,
+                    group: 'form-field',
+                    props: {
+                      defaultValue: '',
+                      label: 'Last Name',
+                    },
+                  },
+                  {
+                    id: uuidV4(),
+                    componentName: 'fullName',
+                    fieldName: 'fullName',
+                    type: ComponentType.TEXT_FIELD,
+                    group: 'form-field',
+                    props: {
+                      defaultValue: '',
+                      label: 'Full Name',
+                    },
+                  },
+                  {
+                    id: uuidV4(),
+                    componentName: 'phone',
+                    fieldName: 'phone',
+                    type: ComponentType.TEXT_FIELD,
+                    group: 'form-field',
+                    props: {
+                      defaultValue: '',
+                      label: 'Phone',
+                    },
+                  },
+                  {
+                    id: uuidV4(),
+                    componentName: 'editButton',
+                    type: ComponentType.BUTTON,
+                    group: 'ui',
+                    props: {
+                      label: 'Edit',
+                    },
+                    actions: {
+                      onClick: {
+                        setProps: {
+                          props: {
+                            open: true,
+                          },
+                          target: 'tabs.__children.tab2.__children.dialogForm',
+                        },
+                        setPropsFromArrayItemData: {
+                          target: 'tabs.__children.tab2.__children.dialogForm',
+                          source: {
+                            id: 'id',
+                          },
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            id: uuidV4(),
+            componentName: 'dialogForm',
+            group: 'form',
+            type: ComponentType.DIALOG_FORM,
+            actions: {
+              onSubmit: {
+                updateUser: true,
+              },
+            },
+            lifecycle: {
+              mountAndUpdate: {
+                'form.loadDataSource': {
+                  params: {
+                    method: 'GET',
+                    url: '/users/${id}',
+                    params: {
+                      props: {
+                        id: 'id',
+                      },
+                    },
+                    loadSuccess: {
+                      resetToPath: '',
+                    },
+                  },
+                  dependencies: {
+                    props: ['id'],
+                  },
+                },
+              },
+            },
+            props: {
+              open: false,
+              title: 'Edit user',
+            },
+            components: [
+              {
+                id: uuidV4(),
+                componentName: 'firstName',
+                fieldName: 'firstName',
+                type: ComponentType.INPUT_FIELD,
+                group: 'form-field',
+                props: {
+                  defaultValue: '',
+                  label: 'First Name',
+                },
+              },
+              {
+                id: uuidV4(),
+                componentName: 'lastName',
+                fieldName: 'lastName',
+                type: ComponentType.INPUT_FIELD,
+                group: 'form-field',
+                props: {
+                  defaultValue: '',
+                  label: 'Last Name',
+                },
+              },
+              {
+                id: uuidV4(),
+                componentName: 'fullName',
+                fieldName: 'fullName',
+                type: ComponentType.INPUT_FIELD,
+                group: 'form-field',
+                props: {
+                  defaultValue: '',
+                  label: 'Full Name',
+                },
+              },
+              {
+                id: uuidV4(),
+                componentName: 'phone',
+                fieldName: 'phone',
+                type: ComponentType.INPUT_FIELD,
+                group: 'form-field',
+                props: {
+                  defaultValue: '',
+                  label: 'Phone',
+                },
+              },
+              {
+                id: uuidV4(),
+                componentName: 'Address',
+                fieldName: 'address',
+                type: ComponentType.INPUT_FIELD,
+                group: 'form-field',
+                props: {
+                  defaultValue: '',
+                  label: 'Address',
+                },
+              },
+              {
+                id: uuidV4(),
+                componentName: 'button',
+                type: ComponentType.BUTTON,
+                group: 'ui',
+                props: {
+                  type: 'submit',
+                  label: 'Submit',
+                },
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: uuidV4(),
+        componentName: 'tab3',
+        group: 'ui',
+        type: ComponentType.TAB,
+        props: {
+          label: 'Tab 3',
+        },
+      },
+    ],
+  },
+];
+
 const TestForm = () => {
   const { register } = useForm({
     mode: 'all',
@@ -195,5 +560,5 @@ export default function App() {
   //   </div>
   // );
   // return <TestForm />;
-  return <PageBuilder defaultComponentConfigs={components} />;
+  return <PageBuilder defaultComponentConfigs={components2} />;
 }

@@ -10,6 +10,11 @@ import { ComponentConfig, ParentPath } from '@/ui-builder/types';
 import { ObjectComponent } from './form-component/ObjectComponent';
 import TextComponent from './ui-component/TextComponent';
 import { ComponentType } from './types';
+import { GridComponent } from './ui-component/GridComponent';
+import TextFieldComponent from './form-component/TextFieldComponent';
+import { DataTableComponent } from './form-component/DataTableComponent';
+import { DialogComponent } from './ui-component/DialogComponent';
+import { DialogFormComponent } from './ui-component/DialogFormComponent';
 
 export const configuredComponents = {
   [ComponentType.INPUT]: InputComponent,
@@ -21,6 +26,11 @@ export const configuredComponents = {
   [ComponentType.FORM]: FormComponent,
   [ComponentType.OBJECT_CONTAINER]: ObjectComponent,
   [ComponentType.TEXT]: TextComponent,
+  [ComponentType.GRID]: GridComponent,
+  [ComponentType.TEXT_FIELD]: TextFieldComponent,
+  [ComponentType.DATA_TABLE]: DataTableComponent,
+  [ComponentType.DIALOG]: DialogComponent,
+  [ComponentType.DIALOG_FORM]: DialogFormComponent,
 };
 
 export type AllComponentProps = Partial<

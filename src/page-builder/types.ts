@@ -14,12 +14,15 @@ export enum ComponentType {
   TAB = 'tab',
   COLUMN = 'column',
   TEXT = 'text',
+  GRID = 'grid',
+  DIALOG_FORM = 'dialogForm',
 
   /**
    * Data components
    * Components are used inside Form component and used to collected data
    */
   INPUT_FIELD = 'inputField',
+  TEXT_FIELD = 'textField',
   OBJECT_CONTAINER = 'objectContainer',
   ARRAY_CONTAINER = 'arrayContainer',
   SUBMIT_BUTTON = 'submitButton',

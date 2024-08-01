@@ -47,7 +47,6 @@ export const ArrayComponent: React.FunctionComponent<ArrayComponentProps> = (pro
       </DragDropWrapper>
     );
   }
-  console.log(fields);
   return (
     <div className="w-full flex flex-col space-y-4">
       {fields?.map((field, fieldIndex) => (

@@ -40,7 +40,7 @@ export const TabsComponent: React.FunctionComponent<TabsComponentProps> = (props
               onMouseDown={(event) => {
                 event.stopPropagation();
               }}>
-              {tab.componentName}
+              {tab.props?.label}
             </TabsTrigger>
           ))}
         </TabsList>

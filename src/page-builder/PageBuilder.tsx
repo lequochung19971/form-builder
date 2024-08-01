@@ -131,7 +131,6 @@ export const PageBuilder: React.FunctionComponent<{
 
   const [componentConfigs, setComponentConfigs] =
     useState<ComponentConfig[]>(defaultComponentConfigs);
-  console.log(componentConfigs);
   const [activeData, setActiveData] = useState<{
     item?: ComponentConfig;
     isNew?: boolean;
@@ -316,7 +315,7 @@ export const PageBuilder: React.FunctionComponent<{
         sensors={sensors}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}>
-        <Button onClick={() => setIsBuildingMode((prev) => !prev)}>Toggle mode</Button>
+        {/* <Button onClick={() => setIsBuildingMode((prev) => !prev)}>Toggle mode</Button>
         <div className="space-x-4 mb-4 p-4 border border-dotted border-muted-foreground rounded-md">
           <NewComponentDraggable type={ComponentType.INPUT} name={ComponentType.INPUT} />
           <NewComponentDraggable type={ComponentType.TABS} name={ComponentType.TABS} />
@@ -331,14 +330,14 @@ export const PageBuilder: React.FunctionComponent<{
           <NewComponentDraggable type={ComponentType.FORM} name={ComponentType.FORM} />
           <NewComponentDraggable type={ComponentType.BUTTON} name={ComponentType.BUTTON} />
           <NewComponentDraggable type={ComponentType.TEXT} name={ComponentType.TEXT} />
-        </div>
+        </div> */}
         {!componentConfigs.length ? (
           <DropHerePlaceholder className="h-[200px]" />
         ) : (
           <div className="border border-muted-foreground rounded-md p-4">
             <PageBuilderContext.Provider
               value={{
-                isBuildingMode,
+                isBuildingMode: false,
                 handleOnClickDeleteComponent,
                 handleOnClickEditComponent,
               }}>

@@ -43,11 +43,6 @@ export const DragDropWrapper: React.FunctionComponent<DragDropWrapperProps> = (p
     },
   });
 
-  if (over?.data.current?.item.type === 'container') {
-    console.log('is over container');
-    console.log(deferredPosition, isOver);
-  }
-
   const style = {
     transform: CSS.Translate.toString(transform),
     flex: 1,

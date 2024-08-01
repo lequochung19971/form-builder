@@ -43,6 +43,7 @@ import {
   resolveArrayIndexesForFieldName as resolveArrayIndexes,
 } from './utils';
 import builtInValidationMethods from './validationMethods';
+import builtInLifecycleActionMethods from './lifecycleActionMethods';
 
 export type ComponentInstancesNextArgs = {
   componentName?: string;
@@ -63,10 +64,10 @@ export type UIBuilderControl = {
    * - Limit using `_setComponentInstance`, and recommend using `_setComponentProps`, `_updatePartialComponentProps` to update props.
    * - If you want to update component state, recommend using `setComponentState` in each component instance `__control`, don't use `_setComponentInstance` to update `state`, it' not a best practice.
    */
-  _setComponentInstance: <TInstance extends ComponentInstance = ComponentInstance>(
-    componentName: string,
-    updateComponentInstance: TInstance
-  ) => void;
+  // _setComponentInstance: <TInstance extends ComponentInstance = ComponentInstance>(
+  //   componentName: string,
+  //   updateComponentInstance: TInstance
+  // ) => void;
   _updatePartialComponentInstance: (
     componentName: string,
     updatedInstance: PartialComponentInstance
@@ -119,6 +120,7 @@ export const createUIBuilder = (args: {
   } as ValidationMethodCreations;
   const _lifecycleActionMethods = {
     ...customLifecycleActionMethodCreations,
+    ...builtInLifecycleActionMethods,
   } as LifecycleActionMethodCreations;
   const _computedActionMethodCreations = {
     ...customComputedActionMethodCreations,
@@ -159,11 +161,13 @@ export const createUIBuilder = (args: {
     updatedInstance: PartialComponentInstance
   ) => {
     const prevComponentInstance = get(_componentInstances, componentName);
-    if (prevComponentInstance) {
-      const newComponentInstance = merge(prevComponentInstance, updatedInstance);
-
-      set(_componentInstances, componentName, newComponentInstance);
+    if (!prevComponentInstance) {
+      console.error(`Can not find componentInstance with ${componentName} component name`);
+      return;
     }
+    const newComponentInstance = merge(prevComponentInstance, updatedInstance);
+
+    set(_componentInstances, componentName, newComponentInstance);
 
     _subjects.instances.next({
       componentName,
@@ -176,15 +180,18 @@ export const createUIBuilder = (args: {
     componentProps: TProps | ((prevProps: TProps) => TProps)
   ) => {
     const prevComponentInstance = get(_componentInstances, componentName);
-    if (prevComponentInstance) {
-      const newComponentProps =
-        typeof componentProps === 'function'
-          ? componentProps(prevComponentInstance.props as TProps)
-          : componentProps;
-      prevComponentInstance.props = newComponentProps;
-
-      set(_componentInstances, componentName, { ...prevComponentInstance });
+    if (!prevComponentInstance) {
+      console.error(`Can not find componentInstance with ${componentName} component name`);
+      return;
     }
+
+    const newComponentProps =
+      typeof componentProps === 'function'
+        ? componentProps(prevComponentInstance.props as TProps)
+        : componentProps;
+    prevComponentInstance.props = newComponentProps;
+
+    set(_componentInstances, componentName, { ...prevComponentInstance });
 
     _subjects.instances.next({
       componentName,
@@ -197,13 +204,15 @@ export const createUIBuilder = (args: {
     updatedProps: DeepPartial<TProps>
   ) => {
     const prevComponentInstance = get(_componentInstances, componentName);
-    if (prevComponentInstance) {
-      prevComponentInstance.props = produce(prevComponentInstance.props, (draft) => {
-        merge(draft, updatedProps);
-      });
-
-      set(_componentInstances, componentName, { ...prevComponentInstance });
+    if (!prevComponentInstance) {
+      console.error(`Can not find componentInstance with ${componentName} component name`);
+      return;
     }
+    prevComponentInstance.props = produce(prevComponentInstance.props, (draft) => {
+      merge(draft, updatedProps);
+    });
+
+    set(_componentInstances, componentName, { ...prevComponentInstance });
 
     _subjects.instances.next({
       componentName,
@@ -216,13 +225,16 @@ export const createUIBuilder = (args: {
     state: TState | ((prevState: TState) => TState)
   ) => {
     const prevComponentInstance = get(_componentInstances, componentName);
+    if (!prevComponentInstance) {
+      console.error(`Can not find componentInstance with ${componentName} component name`);
+      return;
+    }
+
     const newState =
       typeof state === 'function' ? state(prevComponentInstance.state as TState) : state;
-    if (prevComponentInstance) {
-      prevComponentInstance.state = newState;
+    prevComponentInstance.state = newState;
 
-      set(_componentInstances, componentName, { ...prevComponentInstance });
-    }
+    set(_componentInstances, componentName, { ...prevComponentInstance });
 
     _subjects.instances.next({
       componentName,
@@ -235,14 +247,16 @@ export const createUIBuilder = (args: {
     updatedState: DeepPartial<TState>
   ) => {
     const prevComponentInstance = get(_componentInstances, componentName);
-    if (prevComponentInstance) {
-      prevComponentInstance.state = produce(prevComponentInstance.state, (draft) => {
-        merge(draft, updatedState);
-      });
-
-      set(_componentInstances, componentName, { ...prevComponentInstance });
+    if (!prevComponentInstance) {
+      console.error(`Can not find componentInstance with ${componentName} component name`);
+      return;
     }
 
+    prevComponentInstance.state = produce(prevComponentInstance.state, (draft) => {
+      merge(draft, updatedState);
+    });
+
+    set(_componentInstances, componentName, { ...prevComponentInstance });
     _subjects.instances.next({
       componentName,
       componentInstances: _componentInstances,
@@ -282,8 +296,6 @@ export const createUIBuilder = (args: {
         parentPaths
       );
       const neededComponentStateProperties: ComponentState = {};
-
-      const { validations, ...restProps } = comConfig.props ?? ({} as BaseComponentProps);
 
       /**
        * get action methods
@@ -362,7 +374,7 @@ export const createUIBuilder = (args: {
        * Save validation dependencies to use for trigger if dependent fields are changed.
        */
       const saveValidationDependencies = () => {
-        if (Object.keys(validations ?? {}).length) {
+        if (Object.keys(comConfig.validations ?? {}).length) {
           const { mappedFieldName: mappedFieldValueName } = createMappedFieldName(
             comConfig.fieldName!,
             parentPaths
@@ -414,7 +426,7 @@ export const createUIBuilder = (args: {
         };
       }, {} as ValidationMethods);
 
-      const componentProps: BaseComponentProps = restProps;
+      const componentProps: BaseComponentProps = comConfig.props ?? {};
 
       const basicComponentControl: ComponentControl = {
         getCurrent: () => _getComponentInstances(mappedComponentName) as ComponentInstance,
@@ -542,10 +554,44 @@ export const createUIBuilder = (args: {
         if (!formComponent)
           throw Error('`form-field` component must be wrapped by `form` component group');
 
+        const { mappedFieldName: mappedFieldValueName } = createMappedFieldName(
+          comConfig.fieldName!,
+          parentPaths
+        );
+
         set(result, mappedComponentName, {
           ...basicComponentInstance,
           validations: validators,
         } as FormFieldComponentInstance);
+
+        const getFormComponentInstances = () => {
+          const parentPathsToFormComponentPosition = [] as ParentPath[];
+          for (const path of parentPaths) {
+            if (path.group === 'form') {
+              break;
+            }
+            parentPathsToFormComponentPosition.push(path);
+          }
+          const { mappedComponentName: mappedFormComponentInstanceName } =
+            createMappedComponentName(
+              formComponent.componentName,
+              parentPathsToFormComponentPosition
+            );
+
+          return get(_componentInstances, mappedFormComponentInstanceName);
+        };
+
+        const formComponentInstance = getFormComponentInstances();
+
+        const { getValues, reset, control } = formComponentInstance.__formControl!;
+
+        // Init defaultValue
+        control._defaultValues = set(
+          getValues() ?? {},
+          mappedFieldValueName,
+          getValues(mappedFieldValueName) ?? comConfig.props?.defaultValue
+        );
+        // reset(set(getValues() ?? {}, mappedFieldValueName, comConfig.props?.defaultValue));
 
         saveValidationDependencies();
 
@@ -595,9 +641,15 @@ export const createUIBuilder = (args: {
 
         saveValidationDependencies();
 
-        const { getValues, control, reset } = formComponentInstance.__formControl!;
+        const { getValues, control, resetField } = formComponentInstance.__formControl!;
         // Init defaultValue
-        reset(set(getValues() ?? {}, mappedFieldValueName, comConfig.props?.defaultValue));
+        control._defaultValues = set(
+          getValues() ?? {},
+          mappedFieldValueName,
+          getValues(mappedFieldValueName) ?? comConfig.props?.defaultValue
+        );
+
+        // reset(set(getValues() ?? {}, mappedFieldValueName, comConfig.props?.defaultValue));
 
         const arrayField = createFieldArray({
           name: mappedFieldValueName,
@@ -614,32 +666,30 @@ export const createUIBuilder = (args: {
             const arrayValue = convertToArrayPayload(value);
             if (arrayValue.length) {
               arrayField.replace(arrayValue);
-              const result = produce(_componentInstances, (draft) => {
-                Array(arrayValue.length)
-                  .fill(0)
-                  .map((_, index) => {
-                    const paths =
-                      currentArrayInstance.parentPaths?.concat?.([
-                        {
-                          id: currentArrayInstance.componentConfig.id,
-                          group: currentArrayInstance.componentConfig.group,
-                          fieldName: currentArrayInstance.componentConfig.fieldName,
-                          componentName: currentArrayInstance.componentConfig.componentName,
-                          index,
-                        },
-                      ]) ?? [];
-                    createComponentInstances(
-                      currentArrayInstance.componentConfig.components ?? [],
-                      draft as Record<string, ComponentInstance>,
-                      paths
-                    );
-                  });
-              });
+              Array(arrayValue.length)
+                .fill(0)
+                .map((_, index) => {
+                  const paths =
+                    currentArrayInstance.parentPaths?.concat?.([
+                      {
+                        id: currentArrayInstance.componentConfig.id,
+                        group: currentArrayInstance.componentConfig.group,
+                        fieldName: currentArrayInstance.componentConfig.fieldName,
+                        componentName: currentArrayInstance.componentConfig.componentName,
+                        index,
+                      },
+                    ]) ?? [];
+                  createComponentInstances(
+                    currentArrayInstance.componentConfig.components ?? [],
+                    _componentInstances as Record<string, ComponentInstance>,
+                    paths
+                  );
+                });
               _subjects.instances.next({
                 componentName: mappedComponentName,
-                componentInstances: result,
+                componentInstances: _componentInstances,
               });
-              setComponentInstances(result);
+              // setComponentInstances(result);
             } else {
               _setComponentInstance(mappedComponentName, {
                 ...get(_componentInstances, mappedComponentName),
@@ -878,12 +928,12 @@ export const createUIBuilder = (args: {
 
   createComponentInstances(componentConfigs, _componentInstances, []);
   setComponentInstances(_componentInstances);
-
+  console.log(_componentInstances);
   // const r = detectAndGenerateCircularDependencyGraph(_validationDependencies);
 
   return {
     _setComponentProps,
-    _setComponentInstance,
+    // _setComponentInstance,
     _getComponentInstances,
     _forceSubscribe,
     _updatePartialComponentInstance,

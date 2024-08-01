@@ -10,36 +10,52 @@ import {
 } from '@/components/ui/table';
 import React from 'react';
 import { BaseComponentProps } from '../types';
+import { useArrayFieldComponent } from '@/ui-builder/useArrayFieldComponent';
+import { ComponentItem } from '../PageBuilder';
 
 export type ArrayComponentProps = BaseComponentProps;
 
-export const DataTableComponent: React.FunctionComponent<ArrayComponentProps> = () => {
+export const DataTableComponent: React.FunctionComponent<ArrayComponentProps> = ({
+  componentConfig,
+  parentPaths,
+}) => {
+  const { fields, componentInstance } = useArrayFieldComponent({
+    componentConfig,
+    parentPaths: parentPaths,
+  });
+
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="w-[100px]">Invoice</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Method</TableHead>
-          <TableHead className="text-right">Amount</TableHead>
+          {componentConfig.components?.map((com) => (
+            <TableHead key={com.id}>{com.props?.label}</TableHead>
+          ))}
         </TableRow>
       </TableHeader>
       <TableBody>
-        {/* {invoices.map((invoice) => (
-          <TableRow key={invoice.invoice}>
-            <TableCell className="font-medium">{invoice.invoice}</TableCell>
-            <TableCell>{invoice.paymentStatus}</TableCell>
-            <TableCell>{invoice.paymentMethod}</TableCell>
-            <TableCell className="text-right">{invoice.totalAmount}</TableCell>
+        {fields.map((field, fieldIndex) => (
+          <TableRow key={field.id}>
+            {componentConfig.components?.map((com, index) => (
+              <TableCell key={com.id}>
+                <ComponentItem
+                  key={`${field.id}-${com.id}`}
+                  componentConfig={com}
+                  index={index}
+                  parentId={componentConfig.id}
+                  parentPaths={parentPaths?.concat({
+                    id: componentConfig.id,
+                    group: componentConfig.group,
+                    fieldName: componentConfig.fieldName,
+                    componentName: componentConfig.componentName,
+                    index: fieldIndex,
+                  })}
+                />
+              </TableCell>
+            ))}
           </TableRow>
-        ))} */}
+        ))}
       </TableBody>
-      <TableFooter>
-        <TableRow>
-          <TableCell colSpan={3}>Total</TableCell>
-          <TableCell className="text-right">$2,500.00</TableCell>
-        </TableRow>
-      </TableFooter>
     </Table>
   );
 };

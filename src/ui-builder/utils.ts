@@ -317,7 +317,7 @@ export const generateActions = ({
   eventActionMethods: EventActionMethods;
   componentInstance: ComponentInstance;
 }) => {
-  const executeActions = (event: SyntheticEvent, methods: ActionMethods) => {
+  const executeActions = (event: SyntheticEvent | undefined, methods: ActionMethods) => {
     Object.values(methods).forEach((method) => {
       method?.({
         event,
@@ -329,9 +329,9 @@ export const generateActions = ({
   return Object.entries(eventActionMethods).reduce(
     (result, [key, method]) => ({
       ...result,
-      [key]: method ? (event: React.SyntheticEvent) => executeActions(event, method) : undefined,
+      [key]: method ? (event?: any) => executeActions(event, method) : undefined,
     }),
-    {} as Record<keyof EventActionMethods, (event: React.SyntheticEvent) => void>
+    {} as Record<keyof EventActionMethods, (event?: any) => void>
   );
 };
 
@@ -350,7 +350,7 @@ export const updateAndCompareDependencies = ({
     [] as any[]
   );
 
-  isDifference = (prevDepValues ?? []).some((pd, index) => pd !== newDepValues[index]);
+  isDifference = (newDepValues ?? []).some((pd, index) => pd !== prevDepValues[index]);
 
   return {
     isDifference,

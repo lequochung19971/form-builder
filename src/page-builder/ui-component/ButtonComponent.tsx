@@ -13,6 +13,9 @@ const ButtonComponent: React.FunctionComponent<ButtonComponentProps> = (props) =
     componentConfig,
     parentPaths: parentPaths,
   });
+  const {
+    props: { type = 'button', disabled, loading },
+  } = componentInstance;
 
   if (isBuildingMode) {
     return (
@@ -29,7 +32,7 @@ const ButtonComponent: React.FunctionComponent<ButtonComponentProps> = (props) =
   }
 
   return (
-    <Button data-no-dnd onClick={actions.onClick}>
+    <Button data-no-dnd type={type} onClick={actions.onClick} disabled={disabled || loading}>
       {componentInstance.props?.label}
     </Button>
   );

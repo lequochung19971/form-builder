@@ -1246,6 +1246,9 @@ export function createFormControl<TFieldValues extends FieldValues = FieldValues
       get _defaultValues() {
         return _defaultValues;
       },
+      set _defaultValues(v: any) {
+        _defaultValues = v;
+      },
       get _names() {
         return _names;
       },

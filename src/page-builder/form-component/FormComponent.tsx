@@ -5,66 +5,65 @@ import { FormComponentProvider } from '../../ui-builder/FormComponentContext';
 import { DragDropWrapper } from '../dnd/DragDropWrapper';
 import { useFormComponent } from '@/ui-builder/useFormComponent';
 import { BaseComponentProps } from '../types';
+import { cn } from '@/utils/uiUtils';
 
 export type FormComponentProps = BaseComponentProps;
 
-export const FormComponent: React.FunctionComponent<FormComponentProps> = (props) => {
-  const { componentConfig, parentPaths: parentPaths, index, parentId } = props;
+export const FormComponent: React.FunctionComponent<FormComponentProps> = ({
+  componentConfig,
+  parentPaths: parentPaths,
+  index,
+  parentId,
+}) => {
   const { isBuildingMode } = usePageBuilderContext();
 
-  const { formControl } = useFormComponent({
+  const { formControl, componentInstance, actions } = useFormComponent({
     componentConfig,
     parentPaths: parentPaths,
   });
+  const {
+    props: { grid = {} },
+  } = componentInstance;
 
-  if (!isBuildingMode) {
-    return (
-      <FormComponentProvider {...formControl}>
-        <div>
-          <div className="w-full flex flex-col space-y-4">
-            {!componentConfig.components?.length && (
-              <DropHerePlaceholder
-                componentConfig={componentConfig}
-                parentId={componentConfig.id}
-              />
-            )}
-            {componentConfig.components?.map((com, index) => (
-              <ComponentItem
-                key={com.id}
-                componentConfig={com}
-                index={index}
-                parentId={componentConfig.id}
-                parentPaths={parentPaths?.concat({
-                  id: componentConfig.id,
-                  group: componentConfig.group,
-                  componentName: componentConfig.componentName,
-                })}
-              />
-            ))}
-          </div>
-        </div>
-      </FormComponentProvider>
-    );
-  }
+  const { cols = 1 } = grid;
 
   return (
-    <DragDropWrapper
-      index={index}
-      id={componentConfig.id}
-      data={componentConfig}
-      parentId={parentId}>
-      <FormComponentProvider {...formControl}>
-        <div>
-          <div className="w-full flex flex-col space-y-4">
-            {!componentConfig.components?.length && (
-              <DropHerePlaceholder
-                componentConfig={componentConfig}
-                parentId={componentConfig.id}
-              />
-            )}
-            {componentConfig.components?.map((com, index) => (
+    <FormComponentProvider {...formControl}>
+      <div>
+        <form
+          onSubmit={formControl.handleSubmit(actions.onSubmit)}
+          className={cn('grid gap-4', {
+            'grid-cols-1': cols === 1,
+            'grid-cols-2': cols === 2,
+            'grid-cols-3': cols === 3,
+            'grid-cols-4': cols === 4,
+            'grid-cols-5': cols === 5,
+            'grid-cols-6': cols === 6,
+            'grid-cols-7': cols === 7,
+            'grid-cols-8': cols === 8,
+            'grid-cols-9': cols === 9,
+            'grid-cols-10': cols === 10,
+            'grid-cols-11': cols === 11,
+            'grid-cols-12': cols === 12,
+          })}>
+          {componentConfig.components?.map((com, index) => (
+            <div
+              key={com.id}
+              className={cn({
+                'col-span-1': true,
+                'col-span-2': com.props?.grid?.colSpan === 2,
+                'col-span-3': com.props?.grid?.colSpan === 3,
+                'col-span-4': com.props?.grid?.colSpan === 4,
+                'col-span-5': com.props?.grid?.colSpan === 5,
+                'col-span-6': com.props?.grid?.colSpan === 6,
+                'col-span-7': com.props?.grid?.colSpan === 7,
+                'col-span-8': com.props?.grid?.colSpan === 8,
+                'col-span-9': com.props?.grid?.colSpan === 9,
+                'col-span-10': com.props?.grid?.colSpan === 10,
+                'col-span-11': com.props?.grid?.colSpan === 11,
+                'col-span-12': com.props?.grid?.colSpan === 12,
+              })}>
               <ComponentItem
-                key={com.id}
                 componentConfig={com}
                 index={index}
                 parentId={componentConfig.id}
@@ -74,10 +73,10 @@ export const FormComponent: React.FunctionComponent<FormComponentProps> = (props
                   componentName: componentConfig.componentName,
                 })}
               />
-            ))}
-          </div>
-        </div>
-      </FormComponentProvider>
-    </DragDropWrapper>
+            </div>
+          ))}
+        </form>
+      </div>
+    </FormComponentProvider>
   );
 };

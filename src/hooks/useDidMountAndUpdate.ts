@@ -7,7 +7,7 @@ export function useDidMountAndUpdate(
   callback: (didMount: boolean) => void,
   dependencies?: DependencyList
 ): void {
-  const hasMountedRef = useRef<boolean>(false);
+  const hasMountedRef = useRef<boolean>(true);
   const memorizedCallback = useRefContinuousUpdate(callback);
 
   const internalConditions = useMemo(() => {
@@ -24,12 +24,9 @@ export function useDidMountAndUpdate(
 
   useEffect(() => {
     memorizedCallback.current?.(hasMountedRef.current);
+    hasMountedRef.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, internalConditions);
-
-  useDidMount(() => {
-    hasMountedRef.current = true;
-  });
 
   useWillUnmount(() => {
     hasMountedRef.current = false;

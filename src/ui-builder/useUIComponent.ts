@@ -243,7 +243,7 @@ const useUIComponentLifecycle = ({ componentInstance }: UseUIComponentLifecycleP
   );
 
   useDidMount(() => {
-    executeMountAndUpdateLifecycle('mount', lifecycle.current.mountAndUpdate ?? {}, true);
+    executeMountAndUpdateLifecycle('mount', lifecycle.current.mount ?? {}, true);
   });
 
   useDidMountAndUpdate(
