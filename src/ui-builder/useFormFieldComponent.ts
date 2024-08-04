@@ -10,7 +10,8 @@ import { useFormFieldLifecycle } from './useFormFieldLifecycle';
 
 export const useFormFieldComponent = (props: ComponentProps) => {
   const { componentConfig } = props;
-  const { actions, componentInstance, mappedComponentName } = useBaseComponent(props);
+  const { actions, componentInstance, mappedComponentName, _memorizedMeta } =
+    useBaseComponent(props);
 
   const { formMethods, control } = useUIBuilderContext();
 
@@ -30,11 +31,13 @@ export const useFormFieldComponent = (props: ComponentProps) => {
   const computedResults = useFormFieldComputed({
     componentInstance,
     formMethods,
+    _memorizedMeta,
   });
 
   useFormFieldLifecycle({
     componentInstance,
     formMethods,
+    _memorizedMeta,
   });
 
   const validate = useMemo(

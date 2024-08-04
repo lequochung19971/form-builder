@@ -1,15 +1,16 @@
 import convertToArrayPayload from '@/utils/convertToArrayPayload';
-import { forEach, get, isUndefined } from 'lodash';
+import { get, isUndefined } from 'lodash';
 import { SyntheticEvent } from 'react';
-import { UseFormReturn } from 'react-hook-form';
+import { FieldValues, UseFormReturn } from 'react-hook-form';
 import {
   ActionMethods,
   ComponentInstance,
+  ComponentMeta,
   EventActionMethods,
   ParentPath,
-  ValidationConfigs,
   ValidationMethods,
   WhenConditionConfigs,
+  WhenConditionMethods,
 } from './types';
 
 export const createMappedFieldName = (current: string, parentPaths = [] as ParentPath[]) => {
@@ -251,12 +252,18 @@ export function compareFieldNames(firstFieldName: string, secondFieldName: strin
   return normalizeFieldName(firstFieldName) === normalizeFieldName(secondFieldName);
 }
 
-// TODO: In coming feature
-export const executeWhenCondition = (
-  deps: any[] | undefined,
-  condition: WhenConditionConfigs
-): boolean => {
-  return false;
+export const executeWhenCondition = ({
+  conditions,
+  ...rest
+}: {
+  fieldValue: any;
+  formValues: FieldValues;
+  componentInstance: ComponentInstance;
+  dependentFieldValues?: any[];
+  conditions: WhenConditionMethods;
+}): boolean => {
+  if (!Object.values(conditions).length) return true;
+  return Object.values(conditions).every((method) => method(rest));
 };
 
 export const generateValidationMethods = ({
@@ -290,8 +297,14 @@ export const generateValidationMethods = ({
             : undefined;
 
           if (
-            validator.__config.when?.conditions &&
-            executeWhenCondition(dependentFieldValues, validator.__config.when.conditions)
+            validator.__when?.conditions &&
+            !executeWhenCondition({
+              componentInstance,
+              conditions: validator.__when?.conditions,
+              fieldValue,
+              formValues,
+              dependentFieldValues,
+            })
           )
             return true;
 
@@ -313,23 +326,29 @@ export const generateValidationMethods = ({
 export const generateActions = ({
   eventActionMethods,
   componentInstance,
+  meta,
 }: {
   eventActionMethods: EventActionMethods;
   componentInstance: ComponentInstance;
+  meta?: ComponentMeta;
 }) => {
   const executeActions = (event: SyntheticEvent | undefined, methods: ActionMethods) => {
-    Object.values(methods).forEach((method) => {
+    methods.forEach((method) => {
       method?.({
+        params: method.__config.params,
         event,
         componentInstance,
+        meta,
       });
     });
   };
 
   return Object.entries(eventActionMethods).reduce(
-    (result, [key, method]) => ({
+    (result, [key, actionMethods]) => ({
       ...result,
-      [key]: method ? (event?: any) => executeActions(event, method) : undefined,
+      [key]: (actionMethods as ActionMethods).length
+        ? (event?: any) => executeActions(event, actionMethods as ActionMethods)
+        : undefined,
     }),
     {} as Record<keyof EventActionMethods, (event?: any) => void>
   );

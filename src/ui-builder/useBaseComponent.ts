@@ -1,14 +1,33 @@
 import { useRefContinuousUpdate } from '@/hooks/useRefContinuousUpdate';
-import { useMemo } from 'react';
-import { ComponentInstance, ComponentProps } from './types';
+import { MutableRefObject, useMemo, useRef } from 'react';
+import { ComponentInstance, ComponentProps, EventActionMethods } from './types';
 import { useWatchComponentInstance } from './useWatchComponentInstance';
 import { createMappedComponentName, generateActions } from './utils';
 
+export type UseBaseComponentReturn<T extends ComponentInstance = ComponentInstance> = {
+  mappedComponentName: string;
+  componentInstance: T;
+  actions: Record<keyof EventActionMethods, (event?: any) => void>;
+  get _memorizedMeta(): MutableRefObject<Partial<Record<string, any>>>;
+};
+
 export const useBaseComponent = <T extends ComponentInstance = ComponentInstance>(
   props: ComponentProps
-) => {
-  const { componentConfig, parentPaths } = props;
+): UseBaseComponentReturn<T> => {
+  const { componentConfig, parentPaths, meta = {} } = props;
   const memorizedComponentConfig = useRefContinuousUpdate(componentConfig);
+
+  const _memorizedMeta = useRef(meta);
+
+  _memorizedMeta.current = useMemo(() => {
+    return Object.entries(meta).reduce(
+      (res, [key, metaValue]) => ({
+        ...res,
+        [key]: metaValue,
+      }),
+      {}
+    );
+  }, [meta]);
 
   const { mappedComponentName: mappedComponentName } = createMappedComponentName(
     memorizedComponentConfig.current.componentName,
@@ -28,6 +47,7 @@ export const useBaseComponent = <T extends ComponentInstance = ComponentInstance
       generateActions({
         eventActionMethods: componentInstance.actions ?? {},
         componentInstance,
+        meta: _memorizedMeta.current,
       }),
     [componentInstance]
   );
@@ -36,5 +56,8 @@ export const useBaseComponent = <T extends ComponentInstance = ComponentInstance
     mappedComponentName,
     componentInstance,
     actions: componentActionMethods,
+    get _memorizedMeta() {
+      return _memorizedMeta;
+    },
   };
 };

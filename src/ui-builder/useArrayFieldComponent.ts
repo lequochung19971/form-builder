@@ -11,7 +11,8 @@ import { useFormFieldComputed } from './useFormFieldComputed';
 
 export const useArrayFieldComponent = (props: ComponentProps) => {
   const { componentConfig } = props;
-  const { actions, componentInstance, mappedComponentName } = useBaseComponent(props);
+  const { actions, componentInstance, mappedComponentName, _memorizedMeta } =
+    useBaseComponent(props);
 
   const { formMethods } = useUIBuilderContext();
 
@@ -29,11 +30,13 @@ export const useArrayFieldComponent = (props: ComponentProps) => {
   const computedResults = useFormFieldComputed({
     componentInstance,
     formMethods,
+    _memorizedMeta,
   });
 
   useFormFieldLifecycle({
     componentInstance,
     formMethods,
+    _memorizedMeta,
   });
 
   const validate = useMemo(

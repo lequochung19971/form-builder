@@ -7,9 +7,7 @@ import {
 } from '@/ui-builder/types';
 
 declare module '@/ui-builder/types' {
-  export interface ActionConfigs extends OriginalActionConfigs {
-    doSomething?: boolean;
-  }
+  export interface ActionConfigs extends OriginalActionConfigs {}
   export interface EventActionConfigs extends OriginalEventActionConfigs {
     custom?: ActionConfigs;
   }

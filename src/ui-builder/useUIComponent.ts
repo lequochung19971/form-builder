@@ -8,24 +8,30 @@ import { useCallback, useMemo, useRef } from 'react';
 import {
   BaseComponentProps,
   ComponentInstance,
+  ComponentMeta,
   ComponentProps,
   ComponentState,
   LifecycleActionMethod,
   LifecycleConfigs,
   LifecycleName,
 } from './types';
-import { useBaseComponent } from './useBaseComponent';
+import { useBaseComponent, UseBaseComponentReturn } from './useBaseComponent';
 import { updateAndCompareDependencies } from './utils';
 
 type UseUIComponentComputedProps = {
   componentInstance: ComponentInstance;
-};
-const useUIComponentComputed = ({ componentInstance }: UseUIComponentComputedProps) => {
+} & Pick<UseBaseComponentReturn, '_memorizedMeta'>;
+const useUIComponentComputed = ({
+  componentInstance,
+  _memorizedMeta,
+}: UseUIComponentComputedProps) => {
   /**
    * ======================= Handle computed methods =======================
    */
   const computed = useRefContinuousUpdate(componentInstance.computed);
-  const _memorizedComputedDependencies = useRef<Record<string, { props: any[]; state: any[] }>>({});
+  const _memorizedComputedDependencies = useRef<
+    Record<string, { props?: any[]; state?: any[]; meta?: any[] }>
+  >({});
   const _memorizedComputedResult = useRef<Record<string, any>>({});
 
   const computedResults = useMemo(() => {
@@ -38,7 +44,7 @@ const useUIComponentComputed = ({ componentInstance }: UseUIComponentComputedPro
         } = updateAndCompareDependencies({
           values: componentInstance.props,
           depConfigs: computedMethod?.__config.dependencies?.props ?? [],
-          prevDepValues: _memorizedComputedDependencies.current?.[computedName]?.props,
+          prevDepValues: _memorizedComputedDependencies.current?.[computedName]?.props ?? [],
         });
 
         const {
@@ -48,12 +54,32 @@ const useUIComponentComputed = ({ componentInstance }: UseUIComponentComputedPro
         } = updateAndCompareDependencies({
           values: componentInstance.state,
           depConfigs: computedMethod?.__config.dependencies?.state ?? [],
-          prevDepValues: _memorizedComputedDependencies.current?.[computedName]?.state,
+          prevDepValues: _memorizedComputedDependencies.current?.[computedName]?.state ?? [],
         });
 
-        if (isDifferenceProps || isDifferenceState) {
-          set(_memorizedComputedDependencies.current, `${computedName}.props`, newProps);
-          set(_memorizedComputedDependencies.current, `${computedName}.state`, newState);
+        const {
+          isDifference: isDifferenceMeta,
+          prevValues: prevMeta,
+          newValues: newMeta,
+        } = updateAndCompareDependencies({
+          values: _memorizedMeta.current,
+          depConfigs: computedMethod?.__config.dependencies?.meta ?? [],
+          prevDepValues: _memorizedComputedDependencies.current?.[computedName]?.meta ?? [],
+        });
+
+        if (isDifferenceProps || isDifferenceState || isDifferenceMeta) {
+          _memorizedComputedDependencies.current[computedName] = {
+            ..._memorizedComputedDependencies.current[computedName],
+            props: newProps,
+          };
+          _memorizedComputedDependencies.current[computedName] = {
+            ..._memorizedComputedDependencies.current[computedName],
+            state: newState,
+          };
+          _memorizedComputedDependencies.current[computedName] = {
+            ..._memorizedComputedDependencies.current[computedName],
+            meta: newMeta,
+          };
           return {
             ...computedResult,
             [computedName]: computedMethod?.({
@@ -68,6 +94,10 @@ const useUIComponentComputed = ({ componentInstance }: UseUIComponentComputedPro
                   new: newState,
                   previous: prevState,
                 },
+                meta: {
+                  new: newMeta,
+                  previous: prevMeta,
+                },
               },
             }),
           };
@@ -79,7 +109,7 @@ const useUIComponentComputed = ({ componentInstance }: UseUIComponentComputedPro
     );
     return _memorizedComputedResult.current;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [componentInstance.props, componentInstance.state]);
+  }, [componentInstance.props, componentInstance.state, _memorizedMeta.current]);
   // =====================================================================
 
   return computedResults;
@@ -87,10 +117,13 @@ const useUIComponentComputed = ({ componentInstance }: UseUIComponentComputedPro
 
 type UseUIComponentLifecycleProps = {
   componentInstance: ComponentInstance;
-};
-const useUIComponentLifecycle = ({ componentInstance }: UseUIComponentLifecycleProps) => {
+} & Pick<UseBaseComponentReturn, '_memorizedMeta'>;
+const useUIComponentLifecycle = ({
+  componentInstance,
+  _memorizedMeta,
+}: UseUIComponentLifecycleProps) => {
   const _memorizedLifecycleDependencies = useRef<
-    Record<LifecycleName, Record<string, { props: any[]; state: any[] }>>
+    Record<LifecycleName, Record<string, { props: any[]; state: any[]; meta: any[] }>>
   >({
     mount: {},
     mountAndUpdate: {},
@@ -120,11 +153,16 @@ const useUIComponentLifecycle = ({ componentInstance }: UseUIComponentLifecycleP
       });
 
       if (isDifference) {
-        set(
-          _memorizedLifecycleDependencies.current,
-          `${lifecycleName}.${actionName}.props`,
-          newValues
-        );
+        _memorizedLifecycleDependencies.current = {
+          ..._memorizedLifecycleDependencies.current,
+          [lifecycleName]: {
+            ..._memorizedLifecycleDependencies.current[lifecycleName],
+            [actionName]: {
+              ..._memorizedLifecycleDependencies.current[lifecycleName]?.[actionName],
+              props: newValues,
+            },
+          },
+        };
       }
 
       return {
@@ -156,11 +194,57 @@ const useUIComponentLifecycle = ({ componentInstance }: UseUIComponentLifecycleP
       });
 
       if (isDifference) {
-        set(
-          _memorizedLifecycleDependencies.current,
-          `${lifecycleName}.${actionName}.state`,
-          newValues
-        );
+        _memorizedLifecycleDependencies.current = {
+          ..._memorizedLifecycleDependencies.current,
+          [lifecycleName]: {
+            ..._memorizedLifecycleDependencies.current[lifecycleName],
+            [actionName]: {
+              ..._memorizedLifecycleDependencies.current[lifecycleName]?.[actionName],
+              state: newValues,
+            },
+          },
+        };
+      }
+
+      return {
+        isDifference,
+        prevValues,
+        newValues,
+      };
+    },
+    []
+  );
+
+  const updateAndCompareMeta = useCallback(
+    ({
+      meta,
+      actionName,
+      depConfigs,
+      lifecycleName,
+    }: {
+      meta: ComponentMeta;
+      actionName: string;
+      lifecycleName: keyof LifecycleConfigs;
+      depConfigs: string[];
+    }) => {
+      const { isDifference, prevValues, newValues } = updateAndCompareDependencies({
+        values: meta,
+        depConfigs,
+        prevDepValues:
+          _memorizedLifecycleDependencies.current?.[lifecycleName]?.[actionName]?.meta ?? [],
+      });
+
+      if (isDifference) {
+        _memorizedLifecycleDependencies.current = {
+          ..._memorizedLifecycleDependencies.current,
+          [lifecycleName]: {
+            ..._memorizedLifecycleDependencies.current[lifecycleName],
+            [actionName]: {
+              ..._memorizedLifecycleDependencies.current[lifecycleName]?.[actionName],
+              meta: newValues,
+            },
+          },
+        };
       }
 
       return {
@@ -175,10 +259,10 @@ const useUIComponentLifecycle = ({ componentInstance }: UseUIComponentLifecycleP
   const executeMountAndUpdateLifecycle = useCallback(
     (
       lifecycleName: LifecycleName,
-      lifecycleMethods: Partial<Record<string, LifecycleActionMethod>>,
+      lifecycleMethods: LifecycleActionMethod[],
       didMount: boolean
     ) => {
-      Object.entries(lifecycleMethods).forEach(([actionName, actionMethod]) => {
+      lifecycleMethods.forEach((actionMethod, index) => {
         if (didMount) {
           actionMethod?.({
             params: actionMethod.__config.params,
@@ -204,7 +288,8 @@ const useUIComponentLifecycle = ({ componentInstance }: UseUIComponentLifecycleP
             newValues: newProps,
             isDifference: isPropsDifference,
           } = updateAndCompareProps({
-            actionName,
+            // Add index because in case of using the same action name
+            actionName: `${actionMethod.__config.name}___${index}`,
             lifecycleName,
             depConfigs: dependencies.props ?? [],
             props: componentInstance.props,
@@ -214,12 +299,24 @@ const useUIComponentLifecycle = ({ componentInstance }: UseUIComponentLifecycleP
             newValues: newState,
             isDifference: isStateDifference,
           } = updateAndCompareState({
-            actionName,
+            // Add index because in case of using the same action name
+            actionName: `${actionMethod.__config.name}___${index}`,
             lifecycleName,
             depConfigs: dependencies.state ?? [],
             state: componentInstance.state,
           });
-          if (isPropsDifference || isStateDifference) {
+          const {
+            prevValues: prevMeta,
+            newValues: newMeta,
+            isDifference: isMetaDifference,
+          } = updateAndCompareMeta({
+            // Add index because in case of using the same action name
+            actionName: `${actionMethod.__config.name}___${index}`,
+            lifecycleName,
+            depConfigs: dependencies.state ?? [],
+            meta: _memorizedMeta.current,
+          });
+          if (isPropsDifference || isStateDifference || isMetaDifference) {
             actionMethod?.({
               params: actionMethod.__config.params,
               componentInstance,
@@ -232,6 +329,10 @@ const useUIComponentLifecycle = ({ componentInstance }: UseUIComponentLifecycleP
                   previous: prevState,
                   new: newState,
                 },
+                meta: {
+                  previous: prevMeta,
+                  new: newMeta,
+                },
               },
             });
           }
@@ -239,18 +340,24 @@ const useUIComponentLifecycle = ({ componentInstance }: UseUIComponentLifecycleP
       });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [componentInstance.props, componentInstance.state, updateAndCompareProps, updateAndCompareState]
+    [
+      componentInstance.props,
+      componentInstance.state,
+      _memorizedMeta.current,
+      updateAndCompareProps,
+      updateAndCompareState,
+    ]
   );
 
   useDidMount(() => {
-    executeMountAndUpdateLifecycle('mount', lifecycle.current.mount ?? {}, true);
+    executeMountAndUpdateLifecycle('mount', lifecycle.current.mount ?? [], true);
   });
 
   useDidMountAndUpdate(
     (didMount) => {
       executeMountAndUpdateLifecycle(
         'mountAndUpdate',
-        lifecycle.current.mountAndUpdate ?? {},
+        lifecycle.current.mountAndUpdate ?? [],
         didMount
       );
     },
@@ -259,7 +366,7 @@ const useUIComponentLifecycle = ({ componentInstance }: UseUIComponentLifecycleP
   );
 
   useDidUpdate(() => {
-    executeMountAndUpdateLifecycle('update', lifecycle.current.mountAndUpdate ?? {}, false);
+    executeMountAndUpdateLifecycle('update', lifecycle.current.update ?? [], false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [executeMountAndUpdateLifecycle]);
 
@@ -274,14 +381,17 @@ const useUIComponentLifecycle = ({ componentInstance }: UseUIComponentLifecycleP
 };
 
 export const useUIComponent = (props: ComponentProps) => {
-  const { actions, componentInstance, mappedComponentName } = useBaseComponent(props);
+  const { actions, componentInstance, mappedComponentName, _memorizedMeta } =
+    useBaseComponent(props);
 
   const computedResults = useUIComponentComputed({
     componentInstance,
+    _memorizedMeta,
   });
 
   useUIComponentLifecycle({
     componentInstance,
+    _memorizedMeta,
   });
 
   return {

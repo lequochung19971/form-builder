@@ -4,23 +4,25 @@ import { useDidUpdate } from '@/hooks/useDidUpdate';
 import { useRefContinuousUpdate } from '@/hooks/useRefContinuousUpdate';
 import { useWillUnmount } from '@/hooks/useWillUnmount';
 import {
-  ComponentInstance,
-  LifecycleName,
   BaseComponentProps,
-  LifecycleConfigs,
+  ComponentInstance,
+  ComponentMeta,
   LifecycleActionMethod,
+  LifecycleConfigs,
+  LifecycleName,
 } from '@/ui-builder/types';
-import { set } from 'lodash';
-import { useMemo, useRef, useCallback, ComponentState } from 'react';
+import { ComponentState, useCallback, useMemo, useRef } from 'react';
 import { UseFormReturn, useWatch } from 'react-hook-form';
-import { updateAndCompareDependencies } from './utils';
+import { UseBaseComponentReturn } from './useBaseComponent';
+import { resolveArrayIndexesForFieldName, updateAndCompareDependencies } from './utils';
 type UseFormFieldLifecycleProps = {
   formMethods: UseFormReturn;
   componentInstance: ComponentInstance;
-};
+} & Pick<UseBaseComponentReturn, '_memorizedMeta'>;
 export const useFormFieldLifecycle = ({
   componentInstance,
   formMethods,
+  _memorizedMeta,
 }: UseFormFieldLifecycleProps) => {
   const lifecycle = useRefContinuousUpdate(componentInstance.lifecycle);
 
@@ -30,7 +32,11 @@ export const useFormFieldLifecycle = ({
         return result.concat(
           ...Object.values(lifecycleActions ?? {}).reduce(
             (res, actionMethod) =>
-              res.concat(...(actionMethod?.__config.dependencies?.fields ?? [])),
+              res.concat(
+                ...(actionMethod?.__config.dependencies?.fields ?? []).map((f) =>
+                  resolveArrayIndexesForFieldName(componentInstance.parentPaths ?? [], f)
+                )
+              ),
             [] as string[]
           )
         );
@@ -47,8 +53,11 @@ export const useFormFieldLifecycle = ({
     name: allLifecycleFieldsDependencies,
   });
 
-  const _memorizedDependencies = useRef<
-    Record<LifecycleName, Record<string, { props?: any[]; state?: any[]; fields?: any[] }>>
+  const _memorizedLifecycleDependencies = useRef<
+    Record<
+      LifecycleName,
+      Record<string, { props?: any[]; state?: any[]; fields?: any[]; meta?: any[] }>
+    >
   >({
     mount: {},
     mountAndUpdate: {},
@@ -71,11 +80,21 @@ export const useFormFieldLifecycle = ({
       const { isDifference, prevValues, newValues } = updateAndCompareDependencies({
         values: props,
         depConfigs,
-        prevDepValues: _memorizedDependencies.current?.[lifecycleName]?.[actionName]?.props ?? [],
+        prevDepValues:
+          _memorizedLifecycleDependencies.current?.[lifecycleName]?.[actionName]?.props ?? [],
       });
 
       if (isDifference) {
-        set(_memorizedDependencies.current, `${lifecycleName}.${actionName}.props`, newValues);
+        _memorizedLifecycleDependencies.current = {
+          ..._memorizedLifecycleDependencies.current,
+          [lifecycleName]: {
+            ..._memorizedLifecycleDependencies.current[lifecycleName],
+            [actionName]: {
+              ..._memorizedLifecycleDependencies.current[lifecycleName]?.[actionName],
+              props: newValues,
+            },
+          },
+        };
       }
 
       return {
@@ -102,11 +121,62 @@ export const useFormFieldLifecycle = ({
       const { isDifference, prevValues, newValues } = updateAndCompareDependencies({
         values: state,
         depConfigs,
-        prevDepValues: _memorizedDependencies.current?.[lifecycleName]?.[actionName]?.state ?? [],
+        prevDepValues:
+          _memorizedLifecycleDependencies.current?.[lifecycleName]?.[actionName]?.state ?? [],
       });
 
       if (isDifference) {
-        set(_memorizedDependencies.current, `${lifecycleName}.${actionName}.state`, newValues);
+        _memorizedLifecycleDependencies.current = {
+          ..._memorizedLifecycleDependencies.current,
+          [lifecycleName]: {
+            ..._memorizedLifecycleDependencies.current[lifecycleName],
+            [actionName]: {
+              ..._memorizedLifecycleDependencies.current[lifecycleName]?.[actionName],
+              state: newValues,
+            },
+          },
+        };
+      }
+
+      return {
+        isDifference,
+        prevValues,
+        newValues,
+      };
+    },
+    []
+  );
+
+  const updateAndCompareMeta = useCallback(
+    ({
+      meta,
+      actionName,
+      depConfigs,
+      lifecycleName,
+    }: {
+      meta: ComponentMeta;
+      actionName: string;
+      lifecycleName: keyof LifecycleConfigs;
+      depConfigs: string[];
+    }) => {
+      const { isDifference, prevValues, newValues } = updateAndCompareDependencies({
+        values: meta,
+        depConfigs,
+        prevDepValues:
+          _memorizedLifecycleDependencies.current?.[lifecycleName]?.[actionName]?.meta ?? [],
+      });
+
+      if (isDifference) {
+        _memorizedLifecycleDependencies.current = {
+          ..._memorizedLifecycleDependencies.current,
+          [lifecycleName]: {
+            ..._memorizedLifecycleDependencies.current[lifecycleName],
+            [actionName]: {
+              ..._memorizedLifecycleDependencies.current[lifecycleName]?.[actionName],
+              meta: newValues,
+            },
+          },
+        };
       }
 
       return {
@@ -133,11 +203,21 @@ export const useFormFieldLifecycle = ({
       const { isDifference, prevValues, newValues } = updateAndCompareDependencies({
         values: fieldValues,
         depConfigs,
-        prevDepValues: _memorizedDependencies.current?.[lifecycleName]?.[actionName]?.fields ?? [],
+        prevDepValues:
+          _memorizedLifecycleDependencies.current?.[lifecycleName]?.[actionName]?.fields ?? [],
       });
 
       if (isDifference) {
-        set(_memorizedDependencies.current, `${lifecycleName}.${actionName}.fields`, newValues);
+        _memorizedLifecycleDependencies.current = {
+          ..._memorizedLifecycleDependencies.current,
+          [lifecycleName]: {
+            ..._memorizedLifecycleDependencies.current[lifecycleName],
+            [actionName]: {
+              ..._memorizedLifecycleDependencies.current[lifecycleName]?.[actionName],
+              fields: newValues,
+            },
+          },
+        };
       }
 
       return {
@@ -152,10 +232,10 @@ export const useFormFieldLifecycle = ({
   const executeMountAndUpdateLifecycle = useCallback(
     (
       lifecycleName: LifecycleName,
-      lifecycleMethods: Partial<Record<string, LifecycleActionMethod>>,
+      lifecycleMethods: LifecycleActionMethod[],
       didMount: boolean
     ) => {
-      Object.entries(lifecycleMethods).forEach(([actionName, actionMethod]) => {
+      lifecycleMethods.forEach((actionMethod, index) => {
         if (didMount) {
           actionMethod?.({
             params: actionMethod.__config.params,
@@ -181,7 +261,7 @@ export const useFormFieldLifecycle = ({
             newValues: newProps,
             isDifference: isPropsDifference,
           } = updateAndCompareProps({
-            actionName,
+            actionName: `${actionMethod.__config.name}___${index}`,
             lifecycleName,
             depConfigs: dependencies.props ?? [],
             props: componentInstance.props,
@@ -191,7 +271,7 @@ export const useFormFieldLifecycle = ({
             newValues: newState,
             isDifference: isStateDifference,
           } = updateAndCompareState({
-            actionName,
+            actionName: `${actionMethod.__config.name}___${index}`,
             lifecycleName,
             depConfigs: dependencies.state ?? [],
             state: componentInstance.state,
@@ -201,12 +281,23 @@ export const useFormFieldLifecycle = ({
             newValues: newFieldValues,
             isDifference: isFieldsDifference,
           } = updateAndCompareFields({
-            actionName,
+            actionName: `${actionMethod.__config.name}___${index}`,
             lifecycleName,
             depConfigs: dependencies.state ?? [],
             fieldValues: formMethods.getValues(),
           });
-          if (isPropsDifference || isStateDifference || isFieldsDifference) {
+          const {
+            prevValues: prevMeta,
+            newValues: newMeta,
+            isDifference: isMetaDifference,
+          } = updateAndCompareMeta({
+            // Add index because in case of using the same action name
+            actionName: `${actionMethod.__config.name}___${index}`,
+            lifecycleName,
+            depConfigs: dependencies.state ?? [],
+            meta: _memorizedMeta.current,
+          });
+          if (isPropsDifference || isStateDifference || isFieldsDifference || isMetaDifference) {
             actionMethod?.({
               params: actionMethod.__config.params,
               componentInstance,
@@ -223,6 +314,10 @@ export const useFormFieldLifecycle = ({
                   new: newFieldValues,
                   previous: prevFieldValues,
                 },
+                meta: {
+                  previous: prevMeta,
+                  new: newMeta,
+                },
               },
             });
           }
@@ -234,6 +329,7 @@ export const useFormFieldLifecycle = ({
       componentInstance.props,
       componentInstance.state,
       allLifecycleFieldsDependenciesValue,
+      _memorizedMeta.current,
       updateAndCompareProps,
       updateAndCompareState,
       updateAndCompareFields,
@@ -241,14 +337,14 @@ export const useFormFieldLifecycle = ({
   );
 
   useDidMount(() => {
-    executeMountAndUpdateLifecycle('mount', lifecycle.current.mountAndUpdate ?? {}, true);
+    executeMountAndUpdateLifecycle('mount', lifecycle.current.mountAndUpdate ?? [], true);
   });
 
   useDidMountAndUpdate(
     (didMount) => {
       executeMountAndUpdateLifecycle(
         'mountAndUpdate',
-        lifecycle.current.mountAndUpdate ?? {},
+        lifecycle.current.mountAndUpdate ?? [],
         didMount
       );
     },
@@ -257,7 +353,7 @@ export const useFormFieldLifecycle = ({
   );
 
   useDidUpdate(() => {
-    executeMountAndUpdateLifecycle('update', lifecycle.current.mountAndUpdate ?? {}, false);
+    executeMountAndUpdateLifecycle('update', lifecycle.current.update ?? [], false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [executeMountAndUpdateLifecycle]);
 

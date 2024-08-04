@@ -8,8 +8,10 @@ export type SetPropsConfig = {
   // Target componentName
   target: string;
 };
-const setProps: ActionMethodCreation<SetPropsConfig> = ({ componentInstance, config }) => {
-  componentInstance.__control.updatePartialComponentProps(config.target, config.props);
+const setProps: ActionMethodCreation<SetPropsConfig> = ({ componentInstance, params: config }) => {
+  if (config) {
+    componentInstance.__control.updatePartialComponentProps(config?.target, config?.props);
+  }
 };
 
 export type SetPropsConfigArrayItemData = {
@@ -21,7 +23,7 @@ export type SetPropsConfigArrayItemData = {
 };
 const setPropsFromArrayItemData: ActionMethodCreation<SetPropsConfigArrayItemData> = ({
   componentInstance,
-  config,
+  params: config,
 }) => {
   const { mappedParentFieldName } = createMappedFieldName(
     componentInstance.componentConfig.fieldName!,
@@ -31,11 +33,11 @@ const setPropsFromArrayItemData: ActionMethodCreation<SetPropsConfigArrayItemDat
     .getFormControl()
     ?.getValues(mappedParentFieldName);
 
-  const result = Object.entries(config.source ?? {}).reduce((res, [targetPropKey, sourceKey]) => {
+  const result = Object.entries(config?.source ?? {}).reduce((res, [targetPropKey, sourceKey]) => {
     set(res, targetPropKey, get(currentArrayItem, sourceKey));
     return res;
   }, {});
-  componentInstance.__control.updatePartialComponentProps(config.target, result);
+  componentInstance.__control.updatePartialComponentProps(config?.target ?? '', result);
 };
 
 export type PassRowIdToComponent = {
@@ -45,7 +47,7 @@ export type PassRowIdToComponent = {
 };
 const passRowIdToComponent: ActionMethodCreation<PassRowIdToComponent> = ({
   componentInstance,
-  config,
+  params: config,
 }) => {
   console.log(componentInstance, config);
 };
@@ -57,9 +59,9 @@ export type AppendRow = {
   target: string;
 };
 
-const appendRow: ActionMethodCreation<AppendRow> = ({ componentInstance, config }) => {
+const appendRow: ActionMethodCreation<AppendRow> = ({ componentInstance, params: config }) => {
   const parentFieldArray = componentInstance.__control.getComponentInstances(
-    resolveArrayIndexesForComponentName(componentInstance.parentPaths ?? [], config.target)
+    resolveArrayIndexesForComponentName(componentInstance.parentPaths ?? [], config?.target ?? '')
   );
 
   if (parentFieldArray?.componentConfig.group !== 'form-array-field') {
@@ -67,7 +69,7 @@ const appendRow: ActionMethodCreation<AppendRow> = ({ componentInstance, config 
     return;
   }
 
-  parentFieldArray.__control.append(config.value);
+  parentFieldArray.__control.append(config?.value);
 };
 
 export type CallApiConfig = {
@@ -82,23 +84,23 @@ export type CallApiConfig = {
 };
 const callApi: ActionMethodCreation<CallApiConfig> = async ({
   componentInstance,
-  config,
+  params: config,
   event,
 }) => {
   console.log('Call API', config);
   await httpClient({
-    method: config.method,
-    url: config.url,
+    method: config?.method,
+    url: config?.url,
     data: event,
   });
 
-  if (config.resetForm) {
+  if (config?.resetForm) {
     componentInstance.__formControl?.reset();
   }
 };
 const updateUser: ActionMethodCreation<boolean> = async ({
   componentInstance,
-  config,
+  params: config,
   event: formValues,
 }) => {
   console.log('Call API', config);

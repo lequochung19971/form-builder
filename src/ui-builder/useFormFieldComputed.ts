@@ -1,35 +1,41 @@
 import { useRefContinuousUpdate } from '@/hooks/useRefContinuousUpdate';
 import { ComponentInstance } from '@/ui-builder/types';
-import { set } from 'lodash';
-import { useRef, useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { UseFormReturn, useWatch } from 'react-hook-form';
-import { updateAndCompareDependencies } from './utils';
+import { UseBaseComponentReturn } from './useBaseComponent';
+import { resolveArrayIndexesForFieldName, updateAndCompareDependencies } from './utils';
 
 type UseFormFieldComputedProps = {
   formMethods: UseFormReturn;
   componentInstance: ComponentInstance;
-};
+} & Pick<UseBaseComponentReturn, '_memorizedMeta'>;
 export const useFormFieldComputed = ({
   componentInstance,
   formMethods,
+  _memorizedMeta,
 }: UseFormFieldComputedProps) => {
   const computed = useRefContinuousUpdate(componentInstance.computed);
 
   const _memorizedComputedDependencies = useRef<
-    Record<string, { props: any[]; state: any[]; fields: any[] }>
+    Record<string, { props?: any[]; state?: any[]; fields?: any[]; meta?: any[] }>
   >({});
   const _memorizedComputedResult = useRef<Record<string, any>>({});
 
   const allComputedFieldsDependencies = useMemo(() => {
     const fieldsDependencies = Object.values(computed.current ?? {}).reduce(
       (result, computedMethod) => {
-        return result.concat(...(computedMethod?.__config.dependencies?.fields ?? []));
+        return result.concat(
+          ...(computedMethod?.__config.dependencies?.fields ?? []).map((f) =>
+            resolveArrayIndexesForFieldName(componentInstance.parentPaths ?? [], f)
+          )
+        );
       },
       [] as string[]
     );
 
     // Remove duplicated fields
     return [...new Set(fieldsDependencies)];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [computed]);
 
   const allComputedFieldsDependenciesValue = useWatch({
@@ -47,7 +53,7 @@ export const useFormFieldComputed = ({
         } = updateAndCompareDependencies({
           values: componentInstance.props,
           depConfigs: computedMethod?.__config.dependencies?.props ?? [],
-          prevDepValues: _memorizedComputedDependencies.current?.[computedName]?.props,
+          prevDepValues: _memorizedComputedDependencies.current?.[computedName]?.props ?? [],
         });
         const {
           isDifference: isDifferenceState,
@@ -56,7 +62,7 @@ export const useFormFieldComputed = ({
         } = updateAndCompareDependencies({
           values: componentInstance.state,
           depConfigs: computedMethod?.__config.dependencies?.state ?? [],
-          prevDepValues: _memorizedComputedDependencies.current?.[computedName]?.state,
+          prevDepValues: _memorizedComputedDependencies.current?.[computedName]?.state ?? [],
         });
         const {
           isDifference: isDifferenceFieldValues,
@@ -64,14 +70,38 @@ export const useFormFieldComputed = ({
           newValues: newFieldValues,
         } = updateAndCompareDependencies({
           values: formMethods.getValues(),
-          depConfigs: computedMethod?.__config.dependencies?.fields ?? [],
+          depConfigs: (computedMethod?.__config.dependencies?.fields ?? []).map((f) =>
+            resolveArrayIndexesForFieldName(componentInstance.parentPaths ?? [], f)
+          ),
           prevDepValues: _memorizedComputedDependencies.current?.[computedName]?.fields ?? [],
         });
 
-        if (isDifferenceProps || isDifferenceState || isDifferenceFieldValues) {
-          set(_memorizedComputedDependencies.current, `${computedName}.props`, newProps);
-          set(_memorizedComputedDependencies.current, `${computedName}.state`, newState);
-          set(_memorizedComputedDependencies.current, `${computedName}.fields`, newFieldValues);
+        const {
+          isDifference: isDifferenceMeta,
+          prevValues: prevMeta,
+          newValues: newMeta,
+        } = updateAndCompareDependencies({
+          values: _memorizedMeta.current,
+          depConfigs: computedMethod?.__config.dependencies?.meta ?? [],
+          prevDepValues: _memorizedComputedDependencies.current?.[computedName]?.meta ?? [],
+        });
+        if (isDifferenceProps || isDifferenceState || isDifferenceFieldValues || isDifferenceMeta) {
+          _memorizedComputedDependencies.current[computedName] = {
+            ..._memorizedComputedDependencies.current[computedName],
+            props: newProps,
+          };
+          _memorizedComputedDependencies.current[computedName] = {
+            ..._memorizedComputedDependencies.current[computedName],
+            state: newState,
+          };
+          _memorizedComputedDependencies.current[computedName] = {
+            ..._memorizedComputedDependencies.current[computedName],
+            meta: newMeta,
+          };
+          _memorizedComputedDependencies.current[computedName] = {
+            ..._memorizedComputedDependencies.current[computedName],
+            fields: newFieldValues,
+          };
           return {
             ...computedResult,
             [computedName]: computedMethod?.({
@@ -85,6 +115,10 @@ export const useFormFieldComputed = ({
                 state: {
                   new: newState,
                   previous: prevState,
+                },
+                meta: {
+                  new: newMeta,
+                  previous: prevMeta,
                 },
                 fields: {
                   new: newFieldValues,
@@ -101,7 +135,12 @@ export const useFormFieldComputed = ({
     );
     return _memorizedComputedResult.current;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [componentInstance.props, componentInstance.state, allComputedFieldsDependenciesValue]);
+  }, [
+    componentInstance.props,
+    componentInstance.state,
+    allComputedFieldsDependenciesValue,
+    _memorizedMeta.current,
+  ]);
 
   return computedResults;
 };

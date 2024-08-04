@@ -10,6 +10,12 @@ import {
 } from './actionMethods';
 import { FormLoadDataSourceConfig } from './lifecycleActionMethods';
 
+/**
+ * @caveat componentName is mapped parentName
+ * @example array[0].object.firstName
+ */
+export type ComponentName = string;
+
 export interface BaseComponentProps extends Record<string, any> {
   label?: string;
   defaultValue?: any;
@@ -112,9 +118,9 @@ export type ParentPath = {
 
   fieldName?: string;
   group: ComponentGroup;
-  componentName: string;
+  componentName: ComponentName;
   /**
-   * if having index,it means array
+   * if having index, it means array
    */
   index?: number;
 
@@ -133,11 +139,23 @@ export type WhenConditionMethodCreation<
 > = (args: {
   fieldValue: TFieldValue;
   formValues: TFormValues;
-  message?: string;
   params?: TParams;
   componentInstance: TInstance;
   dependentFieldValues?: any[];
 }) => boolean;
+export type WhenConditionMethodCreations = Record<string, WhenConditionMethodCreation>;
+
+export type WhenConditionMethod<
+  TParams = any,
+  TFieldValue = any,
+  TFormValues extends FieldValues = FieldValues,
+  TInstance extends ComponentInstance = ComponentInstance
+> = WhenConditionMethodCreation<TParams, TFieldValue, TFormValues, TInstance> & {
+  __config: any;
+};
+export interface WhenConditionMethods {
+  [MethodName: string]: WhenConditionMethod;
+}
 export interface WhenConditionConfigs {
   [MethodName: string]: any;
 }
@@ -180,6 +198,9 @@ export type ValidationMethod<
   TInstance extends ComponentInstance = ComponentInstance
 > = ValidationMethodCreation<TParams, TFieldValue, TFormValues, TInstance> & {
   __config: ValidationConfig | boolean;
+  __when?: {
+    conditions: WhenConditionMethods;
+  };
 };
 export interface ValidationConfigs {
   required?: ValidationConfig | boolean;
@@ -197,6 +218,13 @@ type DependencyValues<TProps = any, TState = any, TFieldValues = any[]> = {
     new?: TProps;
   };
   state?: {
+    previous?: TState;
+    new?: TState;
+  };
+  /**
+   * Additional information from component
+   */
+  meta?: {
     previous?: TState;
     new?: TState;
   };
@@ -237,25 +265,26 @@ export type LifecycleActionMethods = {
   /**
    * Did mount
    */
-  mount?: Partial<Record<string, LifecycleActionMethod>>;
+  mount?: LifecycleActionMethod[];
 
   /**
    * Did update
    */
-  update?: Partial<Record<string, LifecycleActionMethod>>;
+  update?: LifecycleActionMethod[];
 
   /**
    * Did mount and did update
    */
-  mountAndUpdate?: Partial<Record<string, LifecycleActionMethod>>;
+  mountAndUpdate?: LifecycleActionMethod[];
 
   /**
    * Will unmount
    */
-  unmount?: Partial<Record<string, LifecycleActionMethod>>;
+  unmount?: LifecycleActionMethod[];
 };
 
-export interface LifecycleActionConfig<TParams extends Record<string, any> = Record<string, any>> {
+export interface LifecycleActionConfig<TName = string, TParams = any> {
+  name: TName;
   params?: TParams;
   /**
    * Use for `update` and `mountAndUpdate` lifecycle. They will be triggered depends on `dependencies` config
@@ -264,6 +293,7 @@ export interface LifecycleActionConfig<TParams extends Record<string, any> = Rec
   dependencies?: {
     props?: string[];
     state?: string[];
+    meta?: string[];
 
     /**
      * Watch field value of field components in form.
@@ -271,9 +301,12 @@ export interface LifecycleActionConfig<TParams extends Record<string, any> = Rec
     fields?: string[];
   };
 }
-export interface LifecycleActionConfigs {
-  'form.loadDataSource'?: LifecycleActionConfig<FormLoadDataSourceConfig>;
-}
+
+export type LifecycleActionConfigUnion = LifecycleActionConfig<
+  'form.loadDataSource',
+  FormLoadDataSourceConfig
+>;
+export interface LifecycleActionConfigs extends Array<LifecycleActionConfigUnion> {}
 
 export type LifecycleName = keyof LifecycleConfigs;
 export type LifecycleConfigs = {
@@ -293,36 +326,43 @@ export type LifecycleConfigs = {
 
 // ======== ACTIONS ========
 export type ActionMethodCreation<
-  TConfig = any,
-  TProps extends BaseComponentProps = BaseComponentProps,
-  TState extends ComponentState = ComponentState,
+  TParams = any,
   TEvent = any,
   TInstance extends ComponentInstance = ComponentInstance
 > = (args: {
-  config: TConfig;
-  props?: TProps;
-  state?: TState;
+  params?: TParams;
   event?: TEvent;
   componentInstance: TInstance;
+  meta?: ComponentMeta;
 }) => void;
 export interface ActionMethodCreations extends Partial<Record<string, ActionMethodCreation>> {}
 
 export type ActionMethod<
-  TProps extends BaseComponentProps = BaseComponentProps,
+  TParams = any,
   TEvent = any,
   TInstance extends ComponentInstance = ComponentInstance
-> = (args: { event?: TEvent; componentInstance: TInstance; props?: TProps }) => void;
+> = ActionMethodCreation<TParams, TEvent, TInstance> & {
+  __config: ActionConfig;
+};
 
-export type ActionMethods = Partial<Record<string, ActionMethod>>;
-export interface ActionConfigs {
-  setProps?: SetPropsConfig;
-  passRowIdToComponent?: PassRowIdToComponent;
-  appendRow?: AppendRow;
-  prependRow?: AppendRow;
-  callApi?: CallApiConfig;
-  setPropsFromArrayItemData?: SetPropsConfigArrayItemData;
-  updateUser?: boolean;
-}
+export type ActionMethods = ActionMethod[];
+
+type ActionConfig<TName = string, TParams = any> = {
+  name: TName;
+  params?: TParams;
+};
+
+type ActionConfigUnion =
+  | ActionConfig<'setProps', SetPropsConfig>
+  | ActionConfig<'passRowIdToComponent', PassRowIdToComponent>
+  | ActionConfig<'appendRow', AppendRow>
+  | ActionConfig<'prependRow', AppendRow>
+  | ActionConfig<'callApi', CallApiConfig>
+  | ActionConfig<'setPropsFromArrayItemData', SetPropsConfigArrayItemData>
+  | ActionConfig<'updateUser', boolean>;
+
+export interface ActionConfigs extends Array<ActionConfigUnion> {}
+
 export interface EventActionConfigs {
   onClick?: ActionConfigs;
   onChange?: ActionConfigs;
@@ -380,6 +420,7 @@ export type ComputedConfig = {
   dependencies?: {
     props?: string[];
     state?: string[];
+    meta?: string[];
 
     /**
      * Watch field value of field components in form.
@@ -438,7 +479,5 @@ export type ComponentMeta = Partial<Record<string, any>>;
 export type ComponentProps = {
   componentConfig: ComponentConfig;
   parentPaths: ParentPath[];
-
-  // TODO: Some meta/custom information (Incoming feature)
   meta?: ComponentMeta;
 };

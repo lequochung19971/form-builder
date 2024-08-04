@@ -1,11 +1,9 @@
-import React from 'react';
-import { ComponentItem, usePageBuilderContext } from '../PageBuilder';
-import { DropHerePlaceholder } from '../DropHerePlaceholder';
-import { FormComponentProvider } from '../../ui-builder/FormComponentContext';
-import { DragDropWrapper } from '../dnd/DragDropWrapper';
 import { useFormComponent } from '@/ui-builder/useFormComponent';
-import { BaseComponentProps } from '../types';
 import { cn } from '@/utils/uiUtils';
+import React from 'react';
+import { FormComponentProvider } from '../../ui-builder/FormComponentContext';
+import { ComponentItem, usePageBuilderContext } from '../PageBuilder';
+import { BaseComponentProps } from '../types';
 
 export type FormComponentProps = BaseComponentProps;
 
@@ -17,7 +15,7 @@ export const FormComponent: React.FunctionComponent<FormComponentProps> = ({
 }) => {
   const { isBuildingMode } = usePageBuilderContext();
 
-  const { formControl, componentInstance, actions } = useFormComponent({
+  const { formControl, componentInstance, actions, mappedComponentName } = useFormComponent({
     componentConfig,
     parentPaths: parentPaths,
   });

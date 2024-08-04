@@ -128,14 +128,17 @@ const components: ComponentConfig<ComponentType>[] = [
           label: 'Click Here',
         },
         actions: {
-          onClick: {
-            appendRow: {
-              target: 'form.__children.array',
-              value: {
-                firstName: '',
+          onClick: [
+            {
+              name: 'appendRow',
+              params: {
+                target: 'form.__children.array',
+                value: {
+                  firstName: '',
+                },
               },
             },
-          },
+          ],
         },
       },
     ],
@@ -189,13 +192,16 @@ const components2: ComponentConfig<ComponentType>[] = [
               },
             },
             actions: {
-              onSubmit: {
-                callApi: {
-                  method: 'POST',
-                  url: '/users',
-                  resetForm: true,
+              onSubmit: [
+                {
+                  name: 'callApi',
+                  params: {
+                    method: 'POST',
+                    url: '/users',
+                    resetForm: true,
+                  },
                 },
-              },
+              ],
             },
             components: [
               {
@@ -310,8 +316,9 @@ const components2: ComponentConfig<ComponentType>[] = [
             type: ComponentType.FORM,
             group: 'form',
             lifecycle: {
-              mountAndUpdate: {
-                'form.loadDataSource': {
+              mountAndUpdate: [
+                {
+                  name: 'form.loadDataSource',
                   params: {
                     method: 'GET',
                     url: '/users',
@@ -323,7 +330,7 @@ const components2: ComponentConfig<ComponentType>[] = [
                     props: ['refetchEvent'],
                   },
                 },
-              },
+              ],
             },
             components: [
               {
@@ -389,20 +396,26 @@ const components2: ComponentConfig<ComponentType>[] = [
                       label: 'Edit',
                     },
                     actions: {
-                      onClick: {
-                        setProps: {
-                          props: {
-                            open: true,
-                          },
-                          target: 'tabs.__children.tab2.__children.dialogForm',
-                        },
-                        setPropsFromArrayItemData: {
-                          target: 'tabs.__children.tab2.__children.dialogForm',
-                          source: {
-                            id: 'id',
+                      onClick: [
+                        {
+                          name: 'setProps',
+                          params: {
+                            props: {
+                              open: true,
+                            },
+                            target: 'tabs.__children.tab2.__children.dialogForm',
                           },
                         },
-                      },
+                        {
+                          name: 'setPropsFromArrayItemData',
+                          params: {
+                            target: 'tabs.__children.tab2.__children.dialogForm',
+                            source: {
+                              id: 'id',
+                            },
+                          },
+                        },
+                      ],
                     },
                   },
                 ],
@@ -415,13 +428,16 @@ const components2: ComponentConfig<ComponentType>[] = [
             group: 'form',
             type: ComponentType.DIALOG_FORM,
             actions: {
-              onSubmit: {
-                updateUser: true,
-              },
+              onSubmit: [
+                {
+                  name: 'updateUser',
+                },
+              ],
             },
             lifecycle: {
-              mountAndUpdate: {
-                'form.loadDataSource': {
+              mountAndUpdate: [
+                {
+                  name: 'form.loadDataSource',
                   params: {
                     method: 'GET',
                     url: '/users/${id}',
@@ -438,7 +454,7 @@ const components2: ComponentConfig<ComponentType>[] = [
                     props: ['id'],
                   },
                 },
-              },
+              ],
             },
             props: {
               open: false,

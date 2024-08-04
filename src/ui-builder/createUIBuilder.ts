@@ -7,8 +7,10 @@ import { produce } from 'immer';
 import { get, isUndefined, merge, set } from 'lodash';
 import { DeepPartial } from 'react-hook-form';
 import builtInActionMethods from './actionMethods';
+import builtInLifecycleActionMethods from './lifecycleActionMethods';
 import {
   ActionConfigs,
+  ActionMethod,
   ActionMethodCreations,
   ActionMethods,
   ArrayFieldComponentInstance,
@@ -17,6 +19,7 @@ import {
   ComponentConfig,
   ComponentControl,
   ComponentInstance,
+  ComponentName,
   ComponentState,
   ComputedMethod,
   ComputedMethodCreations,
@@ -34,6 +37,9 @@ import {
   ValidationMethod,
   ValidationMethodCreations,
   ValidationMethods,
+  WhenConditionMethod,
+  WhenConditionMethodCreations,
+  WhenConditionMethods,
 } from './types';
 import {
   compareFieldNames,
@@ -43,15 +49,24 @@ import {
   resolveArrayIndexesForFieldName as resolveArrayIndexes,
 } from './utils';
 import builtInValidationMethods from './validationMethods';
-import builtInLifecycleActionMethods from './lifecycleActionMethods';
 
 export type ComponentInstancesNextArgs = {
-  componentName?: string;
+  componentName?: ComponentName;
   subscribeAll?: boolean;
   componentInstances: Record<string, ComponentInstance>;
 };
 
+export type ComponentsChannelNextArgs = {
+  /**
+   * @caveat componentName is mapped parentName
+   * @example array[0].object.firstName
+   */
+  componentName: ComponentName;
+  value?: any;
+};
+
 type ComponentInstancesSubject = Subject<ComponentInstancesNextArgs>;
+type ComponentsChannelSubject = Subject<ComponentsChannelNextArgs>;
 
 type ValidationDependency = {
   fieldName: string;
@@ -69,15 +84,15 @@ export type UIBuilderControl = {
   //   updateComponentInstance: TInstance
   // ) => void;
   _updatePartialComponentInstance: (
-    componentName: string,
+    componentName: ComponentName,
     updatedInstance: PartialComponentInstance
   ) => void;
   _updatePartialComponentProps: <TProps extends BaseComponentProps = BaseComponentProps>(
-    componentName: string,
+    componentName: ComponentName,
     updatedProps: DeepPartial<TProps>
   ) => void;
   _setComponentProps: <TProps extends BaseComponentProps = BaseComponentProps>(
-    componentName: string,
+    componentName: ComponentName,
     componentProps: TProps | ((prevProps: TProps) => TProps)
   ) => void;
   _getComponentInstances: <
@@ -89,6 +104,7 @@ export type UIBuilderControl = {
   _forceSubscribe: () => void;
   subjects: {
     instances: ComponentInstancesSubject;
+    components: ComponentsChannelSubject;
   };
   get componentInstances(): Record<string, ComponentInstance>;
   get validationDependencies(): ValidationDependency[];
@@ -102,6 +118,7 @@ export const createUIBuilder = (args: {
   customValidationMethods?: ValidationMethodCreations;
   customLifecycleActionMethodCreations?: LifecycleActionMethodCreations;
   customComputedActionMethodCreations?: ComputedMethodCreations;
+  customWhenConditionMethodCreations?: WhenConditionMethodCreations;
 }): UIBuilderControl => {
   const {
     componentConfigs,
@@ -109,6 +126,7 @@ export const createUIBuilder = (args: {
     customValidationMethods = {},
     customLifecycleActionMethodCreations = {},
     customComputedActionMethodCreations = {},
+    customWhenConditionMethodCreations = {},
   } = args;
   const _actionMethods = {
     ...builtInActionMethods,
@@ -119,45 +137,33 @@ export const createUIBuilder = (args: {
     ...customValidationMethods,
   } as ValidationMethodCreations;
   const _lifecycleActionMethods = {
-    ...customLifecycleActionMethodCreations,
     ...builtInLifecycleActionMethods,
+    ...customLifecycleActionMethodCreations,
   } as LifecycleActionMethodCreations;
   const _computedActionMethodCreations = {
     ...customComputedActionMethodCreations,
   } as ComputedMethodCreations;
+  const _whenConditionMethodCreations = {
+    ...customWhenConditionMethodCreations,
+  } as WhenConditionMethodCreations;
 
-  let _componentInstances = {} as Record<string, ComponentInstance>;
+  const _componentInstances = {} as Record<string, ComponentInstance>;
   const _validationDependencies = [] as ValidationDependency[];
 
   const _subjects = {
     instances: createSubject<ComponentInstancesNextArgs>(),
-  };
-
-  const setComponentInstances = (instances: Record<string, ComponentInstance>) => {
-    _componentInstances = instances;
+    components: createSubject<ComponentsChannelNextArgs>(),
   };
 
   const _forceSubscribe = () => {
     _subjects.instances.next({
       subscribeAll: true,
-      componentInstances: _componentInstances,
+      componentInstances: { ..._componentInstances },
     });
   };
 
-  const _setComponentInstance = <TInstance extends ComponentInstance = ComponentInstance>(
-    componentName: string,
-    updateComponentInstance: TInstance
-  ) => {
-    set(_componentInstances, componentName, updateComponentInstance);
-
-    _subjects.instances.next({
-      componentName,
-      componentInstances: _componentInstances,
-    });
-    setComponentInstances(_componentInstances);
-  };
   const _updatePartialComponentInstance = (
-    componentName: string,
+    componentName: ComponentName,
     updatedInstance: PartialComponentInstance
   ) => {
     const prevComponentInstance = get(_componentInstances, componentName);
@@ -171,12 +177,11 @@ export const createUIBuilder = (args: {
 
     _subjects.instances.next({
       componentName,
-      componentInstances: _componentInstances,
+      componentInstances: { ..._componentInstances },
     });
-    setComponentInstances(_componentInstances);
   };
   const _setComponentProps = <TProps extends BaseComponentProps = BaseComponentProps>(
-    componentName: string,
+    componentName: ComponentName,
     componentProps: TProps | ((prevProps: TProps) => TProps)
   ) => {
     const prevComponentInstance = get(_componentInstances, componentName);
@@ -195,12 +200,11 @@ export const createUIBuilder = (args: {
 
     _subjects.instances.next({
       componentName,
-      componentInstances: _componentInstances,
+      componentInstances: { ..._componentInstances },
     });
-    setComponentInstances(_componentInstances);
   };
   const _updatePartialComponentProps = <TProps extends BaseComponentProps = BaseComponentProps>(
-    componentName: string,
+    componentName: ComponentName,
     updatedProps: DeepPartial<TProps>
   ) => {
     const prevComponentInstance = get(_componentInstances, componentName);
@@ -216,12 +220,11 @@ export const createUIBuilder = (args: {
 
     _subjects.instances.next({
       componentName,
-      componentInstances: _componentInstances,
+      componentInstances: { ..._componentInstances },
     });
-    setComponentInstances(_componentInstances);
   };
   const _setComponentState = <TState extends ComponentState = ComponentState>(
-    componentName: string,
+    componentName: ComponentName,
     state: TState | ((prevState: TState) => TState)
   ) => {
     const prevComponentInstance = get(_componentInstances, componentName);
@@ -238,12 +241,11 @@ export const createUIBuilder = (args: {
 
     _subjects.instances.next({
       componentName,
-      componentInstances: _componentInstances,
+      componentInstances: { ..._componentInstances },
     });
-    setComponentInstances(_componentInstances);
   };
   const _updatePartialComponentState = <TState extends ComponentState = ComponentState>(
-    componentName: string,
+    componentName: ComponentName,
     updatedState: DeepPartial<TState>
   ) => {
     const prevComponentInstance = get(_componentInstances, componentName);
@@ -259,13 +261,12 @@ export const createUIBuilder = (args: {
     set(_componentInstances, componentName, { ...prevComponentInstance });
     _subjects.instances.next({
       componentName,
-      componentInstances: _componentInstances,
+      componentInstances: { ..._componentInstances },
     });
-    setComponentInstances(_componentInstances);
   };
   const _getComponentInstances = <
-    T extends string | string[],
-    R = T extends string[] ? ComponentInstance[] : ComponentInstance
+    T extends ComponentName | ComponentName[],
+    R = T extends ComponentName[] ? ComponentInstance[] : ComponentInstance
   >(
     componentName: T
   ): R => {
@@ -305,19 +306,14 @@ export const createUIBuilder = (args: {
           if (!config) return result;
           return {
             ...result,
-            [event]: Object.entries(config).reduce((methods, [actionName, actionConfig]) => {
+            [event]: config.reduce((methods, actionConfig) => {
               if (!actionConfig) return methods;
 
-              const method = _actionMethods[actionName];
-              return {
-                ...methods,
-                [actionName]: (args) =>
-                  method?.({
-                    ...args,
-                    config: actionConfig,
-                  }),
-              };
-            }, {} as ActionMethods),
+              const definedMethod = _actionMethods[actionConfig.name];
+              const method: ActionMethod = (...args) => definedMethod?.(...args);
+              method.__config = actionConfig;
+              return methods.concat(method);
+            }, [] as ActionMethods),
           };
         },
         {} as EventActionMethods
@@ -351,20 +347,14 @@ export const createUIBuilder = (args: {
 
           return {
             ...result,
-            [lifecycleName]: Object.entries(actConfigs).reduce(
-              (methods, [actionName, actionConfig]) => {
-                if (!actionConfig) return methods;
+            [lifecycleName]: actConfigs.reduce((methods, actionConfig) => {
+              if (!actionConfig) return methods;
 
-                const definedMethod = _lifecycleActionMethods[actionName];
-                const method: LifecycleActionMethod = (...args) => definedMethod?.(...args);
-                method.__config = actionConfig;
-                return {
-                  ...methods,
-                  [actionName]: definedMethod ? method : undefined,
-                } as LifecycleActionMethod;
-              },
-              {} as LifecycleActionMethod
-            ),
+              const definedMethod = _lifecycleActionMethods[actionConfig.name];
+              const method: LifecycleActionMethod = (...args) => definedMethod?.(...args);
+              method.__config = actionConfig;
+              return methods.concat(method);
+            }, [] as LifecycleActionMethod[]),
           };
         },
         {} as LifecycleActionMethods
@@ -412,19 +402,41 @@ export const createUIBuilder = (args: {
       /**
        * Get validators
        */
-      const validators = Object.entries(
-        (comConfig.validations ?? {}) as Record<string, ValidationConfigs[keyof ValidationConfigs]>
-      ).reduce((result, [key, config]) => {
-        if (!config) return result;
+      const validators = Object.entries(comConfig.validations ?? {}).reduce(
+        (result, [key, config]: [string, ValidationConfig | boolean]) => {
+          if (!config) return result;
 
-        const definedMethod = _validationMethods[key];
-        const method: ValidationMethod = (...args) => definedMethod?.(...args);
-        method.__config = config;
-        return {
-          ...result,
-          [key]: config && definedMethod ? method : undefined,
-        };
-      }, {} as ValidationMethods);
+          const definedMethod = _validationMethods[key];
+          if (!definedMethod) return result;
+
+          const whenConditionFns = Object.entries(
+            (config as ValidationConfig)?.when?.conditions ?? {}
+          ).reduce((conditionMethodsResult, [conditionMethodKey, conditionMethodConfig]) => {
+            const definedConditionMethod = _whenConditionMethodCreations[conditionMethodKey];
+            if (!definedConditionMethod) return conditionMethodsResult;
+
+            const cmth: WhenConditionMethod = (...args) => definedConditionMethod(...args);
+            cmth.__config = conditionMethodConfig;
+
+            return {
+              ...conditionMethodsResult,
+              [conditionMethodKey]: cmth,
+            };
+          }, {} as WhenConditionMethods);
+
+          const method: ValidationMethod = (...args) => definedMethod(...args);
+          method.__config = config;
+          method.__when = {
+            conditions: whenConditionFns,
+          };
+
+          return {
+            ...result,
+            [key]: method,
+          };
+        },
+        {} as ValidationMethods
+      );
 
       const componentProps: BaseComponentProps = comConfig.props ?? {};
 
@@ -641,7 +653,8 @@ export const createUIBuilder = (args: {
 
         saveValidationDependencies();
 
-        const { getValues, control, resetField } = formComponentInstance.__formControl!;
+        const { getValues, control } = formComponentInstance.__formControl!;
+
         // Init defaultValue
         control._defaultValues = set(
           getValues() ?? {},
@@ -687,14 +700,18 @@ export const createUIBuilder = (args: {
                 });
               _subjects.instances.next({
                 componentName: mappedComponentName,
-                componentInstances: _componentInstances,
+                componentInstances: { ..._componentInstances },
               });
-              // setComponentInstances(result);
             } else {
-              _setComponentInstance(mappedComponentName, {
+              set(_componentInstances, mappedComponentName, {
                 ...get(_componentInstances, mappedComponentName),
                 __children: [],
               } as ArrayFieldComponentInstance);
+
+              _subjects.instances.next({
+                componentName: mappedComponentName,
+                componentInstances: { ..._componentInstances },
+              });
             }
           },
           prepend: (value, options) => {
@@ -734,7 +751,7 @@ export const createUIBuilder = (args: {
 
             _subjects.instances.next({
               componentName: mappedComponentName,
-              componentInstances: _componentInstances,
+              componentInstances: { ..._componentInstances },
             });
           },
           append: (appendValue, options) => {
@@ -764,7 +781,7 @@ export const createUIBuilder = (args: {
             });
             _subjects.instances.next({
               componentName: mappedComponentName,
-              componentInstances: _componentInstances,
+              componentInstances: { ..._componentInstances },
             });
           },
           remove: (index) => {
@@ -783,10 +800,8 @@ export const createUIBuilder = (args: {
 
             _subjects.instances.next({
               componentName: mappedComponentName,
-              componentInstances: _componentInstances,
+              componentInstances: { ..._componentInstances },
             });
-
-            setComponentInstances(result);
           },
           insert: (atIndex, value, options) => {
             if (isUndefined(atIndex)) return;
@@ -827,7 +842,7 @@ export const createUIBuilder = (args: {
 
             _subjects.instances.next({
               componentName: mappedComponentName,
-              componentInstances: _componentInstances,
+              componentInstances: { ..._componentInstances },
             });
           },
           swap: (indexA, indexB) => {
@@ -848,7 +863,7 @@ export const createUIBuilder = (args: {
 
             _subjects.instances.next({
               componentName: mappedComponentName,
-              componentInstances: _componentInstances,
+              componentInstances: { ..._componentInstances },
             });
           },
           move: (from, to) => {
@@ -866,7 +881,7 @@ export const createUIBuilder = (args: {
 
             _subjects.instances.next({
               componentName: mappedComponentName,
-              componentInstances: _componentInstances,
+              componentInstances: { ..._componentInstances },
             });
           },
           update: (index, updateValue) => {
@@ -896,7 +911,7 @@ export const createUIBuilder = (args: {
 
             _subjects.instances.next({
               componentName: mappedComponentName,
-              componentInstances: _componentInstances,
+              componentInstances: { ..._componentInstances },
             });
           },
         } as ComponentControl;
@@ -927,13 +942,11 @@ export const createUIBuilder = (args: {
   };
 
   createComponentInstances(componentConfigs, _componentInstances, []);
-  setComponentInstances(_componentInstances);
   console.log(_componentInstances);
   // const r = detectAndGenerateCircularDependencyGraph(_validationDependencies);
 
   return {
     _setComponentProps,
-    // _setComponentInstance,
     _getComponentInstances,
     _forceSubscribe,
     _updatePartialComponentInstance,
